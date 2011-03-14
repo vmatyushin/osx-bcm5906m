@@ -87,13 +87,6 @@ bool BCM5906MEthernet::start(IOService *provider)
             break;
         }
 
-        // FIXME: vlan
-        // Tell the OS that we will do IPv4, TCP and UDP checksums and support VLAN.
-   /*     errno_t retval = ifnet_set_offload(mNetworkInterface->getIfnet(),
-                                           IFNET_CSUM_IP | IFNET_CSUM_TCP | IFNET_CSUM_UDP |
-                                           IFNET_VLAN_TAGGING | IFNET_VLAN_MTU);
-        DLOG("0x%x\n", retval);
-*/
         success = true;
     } while (0);
 
@@ -484,6 +477,7 @@ void BCM5906MEthernet::serviceRxInterrupt()
     UInt32 packetsReceived = 0;
     UInt16 vlanTag = 0;
     UInt16 rxIndex = 0;
+    UInt32 checksumValidMask = 0;
     mbuf_t packet;
     bool hasVLan;
     bool replaced;
@@ -502,13 +496,6 @@ void BCM5906MEthernet::serviceRxInterrupt()
         rxIndex = receiveBD->index;
         inputFail = false;
         hasVLan = false;
-
-        // Frame has vlan tag.
-        if (receiveBD->flags & BGE_RXBDFLAG_VLAN_TAG)
-        {
-            hasVLan = true;
-            vlanTag = receiveBD->vlanTag;
-        }
 
         // Frame has error.
         if (receiveBD->flags & BGE_RXBDFLAG_ERROR)
@@ -530,11 +517,27 @@ void BCM5906MEthernet::serviceRxInterrupt()
             continue;
         }
 
+        // Frame has vlan tag.
+        if (receiveBD->flags & BGE_RXBDFLAG_VLAN_TAG)
+        {
+            hasVLan = true;
+            vlanTag = receiveBD->vlanTag;
+        }
+
+        if (receiveBD->flags & BGE_RXBDFLAG_IP_CSUM)
+            checksumValidMask |= kChecksumIP;
+
+        if (receiveBD->flags & BGE_RXBDFLAG_TCP_UDP_CSUM)
+            checksumValidMask |= (kChecksumTCP | kChecksumUDP);
+
+        setChecksumResult(packet, kChecksumFamilyTCPIP,
+                          (kChecksumIP | kChecksumTCP | kChecksumUDP), checksumValidMask);
+
         if (hasVLan)
             setVlanTag(packet, vlanTag);
 
-        // FIXME: correct length
-        mNetworkInterface->inputPacket(packet, receiveBD->length, IONetworkInterface::kInputOptionQueuePacket);
+        mNetworkInterface->inputPacket(packet, receiveBD->length - ETH_CRC_LEN,
+                                       IONetworkInterface::kInputOptionQueuePacket);
         mNetStats->inputPackets += 1;
     }
 
@@ -673,26 +676,25 @@ UInt32 BCM5906MEthernet::outputPacket(mbuf_t packet, void *param)
     bcmHostAddr bdAddr;
     UInt16 vlanTag = 0;
     UInt16 flags = 0;
-
-    //UInt32 demandMask;
-    //bool mustDoIPChecksum = false;
+    UInt32 demandMask = 0;
 
     // Stall output if ring is almost full.
     if (BGE_TX_RING_CNT - mTxDescBusy < bcmMaxSegmentNum)
         return kIOReturnOutputStall;
 
-    // Check if packet has VLAN tag.
-    if (mbuf_get_vlan_tag(packet, &vlanTag) != ENXIO)
-        flags = BGE_TXBDFLAG_VLAN_TAG;
-
-    // TODO: offloading
-    /*
     getChecksumDemand(packet, kChecksumFamilyTCPIP, &demandMask);
+
+    // Check if we must compute an IP checksum.
+    if (demandMask & kChecksumIP)
+        flags |= BGE_TXBDFLAG_IP_CSUM;
+
+    // Check if we must compute a TCP or UDP checksum.
     if ((demandMask & kChecksumTCP) || (demandMask & kChecksumUDP))
         flags |= BGE_TXBDFLAG_TCP_UDP_CSUM;
-    if (demandMask & kChecksumIP)
-        mustDoIPChecksum = true;
-    */
+
+    // Check if packet has a VLAN tag.
+    if (getVlanTagDemand(packet, (UInt32 *) &vlanTag))
+        flags |= BGE_TXBDFLAG_VLAN_TAG;
 
     // Extract physical address and length pairs from the packet.
     fragCount = mMemoryCursor->getPhysicalSegmentsWithCoalesce(packet, vectors, bcmMaxSegmentNum);
@@ -704,11 +706,6 @@ UInt32 BCM5906MEthernet::outputPacket(mbuf_t packet, void *param)
         BGE_HOSTADDR(bdAddr, vectors[i].location);
         OSWriteLittleInt32(&mSendRingAddr[currFrag].bufHostAddr.addrHi, 0, bdAddr.addrHi);
         OSWriteLittleInt32(&mSendRingAddr[currFrag].bufHostAddr.addrLo, 0, bdAddr.addrLo);
-        // FIXME: FIX FIX FIX
-        /*
-        if (mustDoIPChecksum && (i == 0))
-            OSWriteLittleInt16(&mSendRingAddr[currFrag].flags, 0, flags | BGE_TXBDFLAG_IP_CSUM);
-        else*/
         OSWriteLittleInt16(&mSendRingAddr[currFrag].flags, 0, flags);
         OSWriteLittleInt16(&mSendRingAddr[currFrag].vlanTag, 0, vlanTag);
         OSWriteLittleInt16(&mSendRingAddr[currFrag].launchTime, 0, 0);
@@ -740,7 +737,7 @@ drop_packet:
 
 void BCM5906MEthernet::getPacketBufferConstraints(IOPacketBufferConstraints *constraints) const
 {
-    constraints->alignStart = kIOPacketBufferAlign1;
+    constraints->alignStart  = kIOPacketBufferAlign1;
     constraints->alignLength = kIOPacketBufferAlign1;
     return;
 }
@@ -969,7 +966,6 @@ IOReturn BCM5906MEthernet::setMulticastList(IOEthernetAddress *addrList, UInt32 
     return kIOReturnSuccess;
 }
 
-/*
 IOReturn BCM5906MEthernet::getChecksumSupport(UInt32 *checksumMask, UInt32 checksumFamily, bool isOutput)
 {
     if (checksumFamily != kChecksumFamilyTCPIP)
@@ -979,7 +975,6 @@ IOReturn BCM5906MEthernet::getChecksumSupport(UInt32 *checksumMask, UInt32 check
 
     return kIOReturnSuccess;
 }
-*/
 
 #pragma mark -
 #pragma mark Memory Read/Write
@@ -1164,9 +1159,9 @@ bool BCM5906MEthernet::initBlock()
     bcmRCBWrite(offset, nicAddr, 0);
 
     // Load MAC address.
-    writeNICMem(BGE_MAC_ADDR1_LO, mEtherAddr.bytes[4] | (mEtherAddr.bytes[5] << 8));
-    writeNICMem(BGE_MAC_ADDR1_HI, mEtherAddr.bytes[0] | (mEtherAddr.bytes[1] << 8)|
-                                 (mEtherAddr.bytes[2] << 16) | (mEtherAddr.bytes[3] << 24));
+    writeNICMem(BGE_MAC_ADDR1_LO, mEtherAddr.bytes[0] << 8  | (mEtherAddr.bytes[1]));
+    writeNICMem(BGE_MAC_ADDR1_HI, mEtherAddr.bytes[2] << 24 | (mEtherAddr.bytes[3] << 16)|
+                                 (mEtherAddr.bytes[4] << 8) | (mEtherAddr.bytes[5]));
 
     // Set random backoff seed for TX.
     writeNICMem(BGE_TX_RANDOM_BACKOFF,
@@ -1316,16 +1311,11 @@ bool BCM5906MEthernet::initBlock()
 
     // Specify MTU.
     writeNICMem(BGE_RX_MTU, BGE_MAX_FRAMELEN);
-    // FIXME: correct mtu?
-    //writeNICMem(BGE_RX_MTU, mNetworkInterface->getMaxTransferUnit() +
-    //                        ETH_HDR_LEN + ETH_CRC_LEN + ETH_VLAN_TAG_LEN);
 
     // Turn on transmitter.
     bcmSetBit(BGE_TX_MODE, BGE_TXMODE_ENABLE);
 
     // Turn on receiver.
-    // FIXME: unwanted promisc
-    bcmSetBit(BGE_RX_MODE, BGE_RXMODE_RX_PROMISC);
     bcmSetBit(BGE_RX_MODE, BGE_RXMODE_ENABLE);
 
     // Tell firmware we're alive.
@@ -1369,7 +1359,8 @@ void BCM5906MEthernet::initChip()
     // Set up general mode register.
     writeNICMem(BGE_MODE_CTL, BGE_DMA_SWAP_OPTIONS |
                               BGE_MODECTL_MAC_ATTN_INTR |
-                              BGE_MODECTL_HOST_SEND_BDS);
+                              BGE_MODECTL_HOST_SEND_BDS |
+                              BGE_MODECTL_TX_NO_PHDR_CSUM);
 
     bcmSetBit(BGE_MODE_CTL, BGE_MODECTL_STACKUP);
 

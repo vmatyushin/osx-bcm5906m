@@ -475,7 +475,6 @@ void BCM5906MEthernet::serviceRxInterrupt()
     UInt32 returnRingCons = mRxReturnCons;
     bcmReceiveBD *receiveBD;
     UInt32 packetsReceived = 0;
-    UInt16 vlanTag = 0;
     UInt16 rxIndex = 0;
     UInt32 checksumValidMask = 0;
     mbuf_t packet;

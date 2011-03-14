@@ -42,7 +42,7 @@ public:
     virtual IOReturn setPromiscuousMode(bool active);
     virtual IOReturn setMulticastMode(bool active);
     virtual IOReturn setMulticastList(IOEthernetAddress *addrList, UInt32 count);
-    //virtual IOReturn getChecksumSupport(UInt32 *checksumMask, UInt32 checksumFamily, bool isOutput);
+    virtual IOReturn getChecksumSupport(UInt32 *checksumMask, UInt32 checksumFamily, bool isOutput);
 
     virtual IOOutputQueue *createOutputQueue (void);
     virtual bool createWorkLoop(void);

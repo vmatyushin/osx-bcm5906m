@@ -82,10 +82,10 @@ bool BCM5906MEthernet::start(IOService *provider)
 
         publishMedium();
         if (publishMediumDictionary(mMediumDict) == false)
-		{
-			DLOG("Failed to publish media support");
-			break;
-		}
+        {
+            DLOG("Failed to publish media support");
+            break;
+        }
 
         // FIXME: vlan
         // Tell the OS that we will do IPv4, TCP and UDP checksums and support VLAN.
@@ -212,12 +212,12 @@ void BCM5906MEthernet::initPCIConfigSpace(IOPCIDevice *pci)
 bool BCM5906MEthernet::initDriverObjects(IOService *provider)
 {
     // When transmit ring is full, packets are queued here.
-	mTransmitQueue = getOutputQueue();
-	if (mTransmitQueue == 0)
-	{
-		DLOG ("initDriverObjects - no transmit queue was created");
-		return false;
-	}
+    mTransmitQueue = getOutputQueue();
+    if (mTransmitQueue == 0)
+    {
+        DLOG ("initDriverObjects - no transmit queue was created");
+        return false;
+    }
 
     // Get our work loop
     IOWorkLoop *workLoop = (IOWorkLoop *) getWorkLoop();
@@ -243,13 +243,13 @@ bool BCM5906MEthernet::initDriverObjects(IOService *provider)
                                                                              OSMemberFunctionCast(IOFilterInterruptEventSource::Filter,
                                                                                                   this,
                                                                                                   &BCM5906MEthernet::interruptFilter),
-																			 provider);
+                                                                             provider);
     if (!mInterruptSrc || (workLoop->addEventSource(mInterruptSrc) != kIOReturnSuccess))
     {
         DLOG("initDriverObjects - IOInterruptEventSource error");
         return false;
     }
-	mInterruptSrc->enable();
+    mInterruptSrc->enable();
 
     mMediumDict = OSDictionary::withCapacity(6);
     if(!mMediumDict)
@@ -973,7 +973,7 @@ IOReturn BCM5906MEthernet::setMulticastList(IOEthernetAddress *addrList, UInt32 
 IOReturn BCM5906MEthernet::getChecksumSupport(UInt32 *checksumMask, UInt32 checksumFamily, bool isOutput)
 {
     if (checksumFamily != kChecksumFamilyTCPIP)
-		return kIOReturnUnsupported;
+        return kIOReturnUnsupported;
 
     *checksumMask = kChecksumIP | kChecksumTCP | kChecksumUDP;
 
@@ -1042,12 +1042,12 @@ bool BCM5906MEthernet::initBlock()
     bcmHostAddr ringAddr;
 
     /*
-	 * Initialize the memory window pointer register so that
-	 * we can access the first 32K of internal NIC RAM. This will
-	 * allow us to set up the TX send ring RCBs and the RX return
-	 * ring RCBs, plus other things which live in NIC memory.
-	 */
-	writeNICMem(BGE_PCI_MEMWIN_BASEADDR, 0);
+     * Initialize the memory window pointer register so that
+     * we can access the first 32K of internal NIC RAM. This will
+     * allow us to set up the TX send ring RCBs and the RX return
+     * ring RCBs, plus other things which live in NIC memory.
+     */
+    writeNICMem(BGE_PCI_MEMWIN_BASEADDR, 0);
 
     // Configure mbuf memory pool.
     writeNICMem(BGE_BMAN_MBUFPOOL_BASEADDR, BGE_BUFFPOOL_1);
@@ -1057,16 +1057,16 @@ bool BCM5906MEthernet::initBlock()
     writeNICMem(BGE_BMAN_DMA_DESCPOOL_BASEADDR, BGE_DMA_DESCRIPTORS);
     writeNICMem(BGE_BMAN_DMA_DESCPOOL_LEN, 0x2000);
 
-	// Configure mbuf pool watermarks.
+    // Configure mbuf pool watermarks.
     writeNICMem(BGE_BMAN_MBUFPOOL_READDMA_LOWAT, 0x0);
     writeNICMem(BGE_BMAN_MBUFPOOL_MACRX_LOWAT, 0x04);
     writeNICMem(BGE_BMAN_MBUFPOOL_HIWAT, 0x10);
 
-	// Configure DMA resource watermarks.
-	writeNICMem(BGE_BMAN_DMA_DESCPOOL_LOWAT, 5);
-	writeNICMem(BGE_BMAN_DMA_DESCPOOL_HIWAT, 10);
+    // Configure DMA resource watermarks.
+    writeNICMem(BGE_BMAN_DMA_DESCPOOL_LOWAT, 5);
+    writeNICMem(BGE_BMAN_DMA_DESCPOOL_HIWAT, 10);
 
-	// Enable buffer manager.
+    // Enable buffer manager.
     writeNICMem(BGE_BMAN_MODE, BGE_BMANMODE_ENABLE | BGE_BMANMODE_LOMBUF_ATTN);
 
     // Poll for buffer manager start indication.
@@ -1083,82 +1083,82 @@ bool BCM5906MEthernet::initBlock()
         return false;
     }
 
-	// Enable flow-through queues.
-	writeNICMem(BGE_FTQ_RESET, 0xFFFFFFFF);
-	writeNICMem(BGE_FTQ_RESET, 0);
+    // Enable flow-through queues.
+    writeNICMem(BGE_FTQ_RESET, 0xFFFFFFFF);
+    writeNICMem(BGE_FTQ_RESET, 0);
 
-	// Wait until queue initialization is complete.
-	for (i = 0; i < BGE_TIMEOUT; i++)
+    // Wait until queue initialization is complete.
+    for (i = 0; i < BGE_TIMEOUT; i++)
     {
-		IODelay(10);
-		if (readNICMem(BGE_FTQ_RESET) == 0)
-			break;
-	}
+        IODelay(10);
+        if (readNICMem(BGE_FTQ_RESET) == 0)
+            break;
+    }
 
-	if (i == BGE_TIMEOUT)
+    if (i == BGE_TIMEOUT)
     {
-		DLOG("Flow-through queue init failed");
-		return false;
-	}
+        DLOG("Flow-through queue init failed");
+        return false;
+    }
 
-	// Initialize the RX producer ring control block.
-	BGE_HOSTADDR(ringAddr, mReceiveProducerRingPhysAddr);
-	writeNICMem(BGE_RX_STD_RCB_HADDR_HI, ringAddr.addrHi);
-	writeNICMem(BGE_RX_STD_RCB_HADDR_LO, ringAddr.addrLo);
+    // Initialize the RX producer ring control block.
+    BGE_HOSTADDR(ringAddr, mReceiveProducerRingPhysAddr);
+    writeNICMem(BGE_RX_STD_RCB_HADDR_HI, ringAddr.addrHi);
+    writeNICMem(BGE_RX_STD_RCB_HADDR_LO, ringAddr.addrLo);
     writeNICMem(BGE_RX_STD_RCB_MAXLEN_FLAGS, BGE_MAX_FRAMELEN << 16);
-	writeNICMem(BGE_RX_STD_RCB_NICADDR, BGE_STD_RX_RINGS);
+    writeNICMem(BGE_RX_STD_RCB_NICADDR, BGE_STD_RX_RINGS);
 
-	// Set the BD ring replentish thresholds.
-	writeNICMem(BGE_RBDI_STD_REPL_THRESH, 25);
+    // Set the BD ring replentish thresholds.
+    writeNICMem(BGE_RBDI_STD_REPL_THRESH, 25);
 
     // Initialize send ring producer index mailbox register.
     writeNICMem(BGE_MBX_TX_HOST_PROD0_LO, 0);
 
-	/*
-	 * Disable all unused send rings by setting the 'ring disabled'
-	 * bit in the flags field of all the TX send ring control blocks.
-	 * These are located in NIC memory.
-	 */
-	offset = BGE_MEMWIN_START + BGE_SEND_RING_RCB;
-	for (i = 0; i < BGE_TX_RINGS_EXTSSRAM_MAX; i++)
+    /*
+     * Disable all unused send rings by setting the 'ring disabled'
+     * bit in the flags field of all the TX send ring control blocks.
+     * These are located in NIC memory.
+     */
+    offset = BGE_MEMWIN_START + BGE_SEND_RING_RCB;
+    for (i = 0; i < BGE_TX_RINGS_EXTSSRAM_MAX; i++)
     {
-		bcmRCBWrite(offset, maxlen_flags, BGE_RCB_FLAG_RING_DISABLED);
-		bcmRCBWrite(offset, nicAddr, 0);
-		offset += sizeof(bcmRCB);
-	}
+        bcmRCBWrite(offset, maxlen_flags, BGE_RCB_FLAG_RING_DISABLED);
+        bcmRCBWrite(offset, nicAddr, 0);
+        offset += sizeof(bcmRCB);
+    }
 
-	// Configure TX RCB 0 (we use only the first ring).
-	offset = BGE_MEMWIN_START + BGE_SEND_RING_RCB;
-	BGE_HOSTADDR(ringAddr, mSendRingPhysAddr);
-	bcmRCBWrite(offset, ringHostAddr.addrHi, ringAddr.addrHi);
-	bcmRCBWrite(offset, ringHostAddr.addrLo, ringAddr.addrLo);
-	bcmRCBWrite(offset, nicAddr, BGE_NIC_TXRING_ADDR);
-	bcmRCBWrite(offset, maxlen_flags, BGE_TX_RING_CNT << 16);
+    // Configure TX RCB 0 (we use only the first ring).
+    offset = BGE_MEMWIN_START + BGE_SEND_RING_RCB;
+    BGE_HOSTADDR(ringAddr, mSendRingPhysAddr);
+    bcmRCBWrite(offset, ringHostAddr.addrHi, ringAddr.addrHi);
+    bcmRCBWrite(offset, ringHostAddr.addrLo, ringAddr.addrLo);
+    bcmRCBWrite(offset, nicAddr, BGE_NIC_TXRING_ADDR);
+    bcmRCBWrite(offset, maxlen_flags, BGE_TX_RING_CNT << 16);
 
-	// Disable all unused RX return rings.
-	offset = BGE_MEMWIN_START + BGE_RX_RETURN_RING_RCB;
-	for (i = 0; i < BGE_RX_RINGS_MAX; i++)
+    // Disable all unused RX return rings.
+    offset = BGE_MEMWIN_START + BGE_RX_RETURN_RING_RCB;
+    for (i = 0; i < BGE_RX_RINGS_MAX; i++)
     {
-		bcmRCBWrite(offset, ringHostAddr.addrHi, 0);
-		bcmRCBWrite(offset, ringHostAddr.addrLo, 0);
-		bcmRCBWrite(offset, maxlen_flags, BGE_RCB_FLAG_RING_DISABLED);
-		bcmRCBWrite(offset, nicAddr, 0);
-		writeRegisterMailbox(BGE_MBX_RX_CONS0_LO + (i * (sizeof(UInt64))), 0);
-		offset += sizeof(bcmRCB);
-	}
+        bcmRCBWrite(offset, ringHostAddr.addrHi, 0);
+        bcmRCBWrite(offset, ringHostAddr.addrLo, 0);
+        bcmRCBWrite(offset, maxlen_flags, BGE_RCB_FLAG_RING_DISABLED);
+        bcmRCBWrite(offset, nicAddr, 0);
+        writeRegisterMailbox(BGE_MBX_RX_CONS0_LO + (i * (sizeof(UInt64))), 0);
+        offset += sizeof(bcmRCB);
+    }
 
-	// Initialize producer ring producer index mailbox register.
+    // Initialize producer ring producer index mailbox register.
     writeRegisterMailbox(BGE_MBX_RX_STD_PROD_LO, 0);
 
-	/*
-	 * Set up RX return ring 0
-	 * Note that the NIC address for RX return rings is 0x0.
-	 * The return rings live entirely within the host, so the
-	 * nicaddr field in the RCB isn't used.
-	 */
+    /*
+     * Set up RX return ring 0
+     * Note that the NIC address for RX return rings is 0x0.
+     * The return rings live entirely within the host, so the
+     * nicaddr field in the RCB isn't used.
+     */
     offset = BGE_MEMWIN_START + BGE_RX_RETURN_RING_RCB;
     BGE_HOSTADDR(ringAddr, mReceiveReturnRingPhysAddr);
-	bcmRCBWrite(offset, ringHostAddr.addrHi, ringAddr.addrHi);
+    bcmRCBWrite(offset, ringHostAddr.addrHi, ringAddr.addrHi);
     bcmRCBWrite(offset, ringHostAddr.addrLo, ringAddr.addrLo);
     bcmRCBWrite(offset, maxlen_flags, BGE_RX_RING_CNT << 16);
     bcmRCBWrite(offset, nicAddr, 0);
@@ -1168,52 +1168,52 @@ bool BCM5906MEthernet::initBlock()
     writeNICMem(BGE_MAC_ADDR1_HI, mEtherAddr.bytes[0] | (mEtherAddr.bytes[1] << 8)|
                                  (mEtherAddr.bytes[2] << 16) | (mEtherAddr.bytes[3] << 24));
 
-	// Set random backoff seed for TX.
-	writeNICMem(BGE_TX_RANDOM_BACKOFF,
+    // Set random backoff seed for TX.
+    writeNICMem(BGE_TX_RANDOM_BACKOFF,
                 mEtherAddr.bytes[0] + mEtherAddr.bytes[1] + mEtherAddr.bytes[2] +
                 mEtherAddr.bytes[3] + mEtherAddr.bytes[4] + mEtherAddr.bytes[5] +
                 BGE_TX_BACKOFF_SEED_MASK);
 
-	// Set inter-packet gap for transmit.
-	writeNICMem(BGE_TX_LENGTHS, 0x2620);
+    // Set inter-packet gap for transmit.
+    writeNICMem(BGE_TX_LENGTHS, 0x2620);
 
     // Specify which ring to use for packets that don't match any RX rules.
-	writeNICMem(BGE_RX_RULES_CFG, 0x8);
+    writeNICMem(BGE_RX_RULES_CFG, 0x8);
 
-	/*
-	 * Configure number of RX lists. One interrupt distribution
-	 * list, sixteen active lists, one bad frames class.
-	 */
-	writeNICMem(BGE_RXLP_CFG, 0x181);
+    /*
+     * Configure number of RX lists. One interrupt distribution
+     * list, sixteen active lists, one bad frames class.
+     */
+    writeNICMem(BGE_RXLP_CFG, 0x181);
 
-	// Inialize RX list placement stats mask.
-	writeNICMem(BGE_RXLP_STATS_ENABLE_MASK, 0xFFFFFF);
-	writeNICMem(BGE_RXLP_STATS_CTL, 0x1);
+    // Inialize RX list placement stats mask.
+    writeNICMem(BGE_RXLP_STATS_ENABLE_MASK, 0xFFFFFF);
+    writeNICMem(BGE_RXLP_STATS_CTL, 0x1);
 
-	// Disable host coalescing until we get it set up.
-	writeNICMem(BGE_HCC_MODE, 0x0);
+    // Disable host coalescing until we get it set up.
+    writeNICMem(BGE_HCC_MODE, 0x0);
 
-	// Poll to make sure it's shut down.
-	for (i = 0; i < BGE_TIMEOUT; i++)
+    // Poll to make sure it's shut down.
+    for (i = 0; i < BGE_TIMEOUT; i++)
     {
-		IODelay(10);
-		if (!(readNICMem(BGE_HCC_MODE) & BGE_HCCMODE_ENABLE))
-			break;
-	}
+        IODelay(10);
+        if (!(readNICMem(BGE_HCC_MODE) & BGE_HCCMODE_ENABLE))
+            break;
+    }
 
-	if (i == BGE_TIMEOUT)
+    if (i == BGE_TIMEOUT)
     {
-		DLOG("Host coalescing engine failed to shut down.");
-		return false;
-	}
+        DLOG("Host coalescing engine failed to shut down.");
+        return false;
+    }
 
-	// Set up host coalescing defaults.
-	writeNICMem(BGE_HCC_RX_COAL_TICKS, 150);
-	writeNICMem(BGE_HCC_TX_COAL_TICKS, 150);
-	writeNICMem(BGE_HCC_RX_MAX_COAL_BDS, 10);
-	writeNICMem(BGE_HCC_TX_MAX_COAL_BDS, 10);
-	writeNICMem(BGE_HCC_RX_MAX_COAL_BDS_INT, 1);
-	writeNICMem(BGE_HCC_TX_MAX_COAL_BDS_INT, 1);
+    // Set up host coalescing defaults.
+    writeNICMem(BGE_HCC_RX_COAL_TICKS, 150);
+    writeNICMem(BGE_HCC_TX_COAL_TICKS, 150);
+    writeNICMem(BGE_HCC_RX_MAX_COAL_BDS, 10);
+    writeNICMem(BGE_HCC_TX_MAX_COAL_BDS, 10);
+    writeNICMem(BGE_HCC_RX_MAX_COAL_BDS_INT, 1);
+    writeNICMem(BGE_HCC_TX_MAX_COAL_BDS_INT, 1);
 
     // Set up address of statistics block.
     // FIXME: stats
@@ -1222,118 +1222,118 @@ bool BCM5906MEthernet::initBlock()
     writeNICMem(BGE_HCC_STATUSBLK_BASEADDR, BGE_STATUS_BLOCK);
 
     // Set up address of status block.
-	writeNICMem(BGE_HCC_STATUSBLK_ADDR_HI, BGE_ADDR_HI(mStatusBlockPhysAddr));
-	writeNICMem(BGE_HCC_STATUSBLK_ADDR_LO, BGE_ADDR_LO(mStatusBlockPhysAddr));
+    writeNICMem(BGE_HCC_STATUSBLK_ADDR_HI, BGE_ADDR_HI(mStatusBlockPhysAddr));
+    writeNICMem(BGE_HCC_STATUSBLK_ADDR_LO, BGE_ADDR_LO(mStatusBlockPhysAddr));
 
-	// Set up status block size.
+    // Set up status block size.
     val = BGE_STATBLKSZ_32BYTE;
 
-	// Turn on host coalescing state machine.
-	writeNICMem(BGE_HCC_MODE, val | BGE_HCCMODE_ENABLE);
+    // Turn on host coalescing state machine.
+    writeNICMem(BGE_HCC_MODE, val | BGE_HCCMODE_ENABLE);
 
-	// Turn on RX BD completion state machine and enable attentions.
-	writeNICMem(BGE_RBDC_MODE, BGE_RBDCMODE_ENABLE | BGE_RBDCMODE_ATTN);
+    // Turn on RX BD completion state machine and enable attentions.
+    writeNICMem(BGE_RBDC_MODE, BGE_RBDCMODE_ENABLE | BGE_RBDCMODE_ATTN);
 
-	// Turn on RX list placement state machine.
-	writeNICMem(BGE_RXLP_MODE, BGE_RXLPMODE_ENABLE);
+    // Turn on RX list placement state machine.
+    writeNICMem(BGE_RXLP_MODE, BGE_RXLPMODE_ENABLE);
 
-	// Turn on RX list selector state machine.
+    // Turn on RX list selector state machine.
     writeNICMem(BGE_RXLS_MODE, BGE_RXLSMODE_ENABLE);
 
-	val = BGE_MACMODE_TXDMA_ENB | BGE_MACMODE_RXDMA_ENB |
+    val = BGE_MACMODE_TXDMA_ENB | BGE_MACMODE_RXDMA_ENB |
           BGE_MACMODE_RX_STATS_CLEAR | BGE_MACMODE_TX_STATS_CLEAR |
           BGE_MACMODE_RX_STATS_ENB | BGE_MACMODE_TX_STATS_ENB |
           BGE_MACMODE_FRMHDR_DMA_ENB;
     val |= BGE_PORTMODE_MII;
 
-	// Turn on DMA, clear stats.
-	writeNICMem(BGE_MAC_MODE, val);
+    // Turn on DMA, clear stats.
+    writeNICMem(BGE_MAC_MODE, val);
 
-	// Set misc. local control, enable interrupts on attentions.
-	writeNICMem(BGE_MISC_LOCAL_CTL, BGE_MLC_INTR_ONATTN);
+    // Set misc. local control, enable interrupts on attentions.
+    writeNICMem(BGE_MISC_LOCAL_CTL, BGE_MLC_INTR_ONATTN);
 
-	// Turn on DMA completion state machine.
+    // Turn on DMA completion state machine.
     writeNICMem(BGE_DMAC_MODE, BGE_DMACMODE_ENABLE);
 
-	// Turn on write DMA state machine.
+    // Turn on write DMA state machine.
     val = BGE_WDMAMODE_ENABLE | BGE_WDMAMODE_ALL_ATTNS | BGE_WDMAMODE_STATUS_TAG_FIX;
-	writeNICMem(BGE_WDMA_MODE, val);
-	IODelay(40);
+    writeNICMem(BGE_WDMA_MODE, val);
+    IODelay(40);
 
-	// Turn on read DMA state machine.
-	val = BGE_RDMAMODE_ENABLE | BGE_RDMAMODE_ALL_ATTNS;
+    // Turn on read DMA state machine.
+    val = BGE_RDMAMODE_ENABLE | BGE_RDMAMODE_ALL_ATTNS;
     val |= BGE_RDMAMODE_FIFO_LONG_BURST;
-	writeNICMem(BGE_RDMA_MODE, val);
-	IODelay(40);
+    writeNICMem(BGE_RDMA_MODE, val);
+    IODelay(40);
 
-	// Turn on RX data completion state machine.
-	writeNICMem(BGE_RDC_MODE, BGE_RDCMODE_ENABLE | BGE_RDCMODE_ATTN);
+    // Turn on RX data completion state machine.
+    writeNICMem(BGE_RDC_MODE, BGE_RDCMODE_ENABLE | BGE_RDCMODE_ATTN);
 
-	// Turn on RX BD initiator state machine.
-	writeNICMem(BGE_RBDI_MODE, BGE_RBDIMODE_ENABLE | BGE_RBDIMODE_ATTN);
+    // Turn on RX BD initiator state machine.
+    writeNICMem(BGE_RBDI_MODE, BGE_RBDIMODE_ENABLE | BGE_RBDIMODE_ATTN);
 
-	// Turn on RX data and RX BD initiator state machine.
-	writeNICMem(BGE_RDBDI_MODE, BGE_RDBDIMODE_ENABLE | BGE_RDBDIMODE_BADRINGSZ_ATTN);
+    // Turn on RX data and RX BD initiator state machine.
+    writeNICMem(BGE_RDBDI_MODE, BGE_RDBDIMODE_ENABLE | BGE_RDBDIMODE_BADRINGSZ_ATTN);
 
-	// Turn on Mbuf cluster free state machine.
+    // Turn on Mbuf cluster free state machine.
     writeNICMem(BGE_MBCF_MODE, BGE_MBCFMODE_ENABLE);
 
-	// Turn on send BD completion state machine.
-	writeNICMem(BGE_SBDC_MODE, BGE_SBDCMODE_ENABLE);
+    // Turn on send BD completion state machine.
+    writeNICMem(BGE_SBDC_MODE, BGE_SBDCMODE_ENABLE);
 
-	// Turn on send data completion state machine.
-	val = BGE_SDCMODE_ENABLE;
-	writeNICMem(BGE_SDC_MODE, val);
+    // Turn on send data completion state machine.
+    val = BGE_SDCMODE_ENABLE;
+    writeNICMem(BGE_SDC_MODE, val);
 
-	// Turn on send data initiator state machine.
+    // Turn on send data initiator state machine.
     writeNICMem(BGE_SDI_MODE, BGE_SDIMODE_ENABLE);
 
-	// Turn on send BD initiator state machine.
-	writeNICMem(BGE_SBDI_MODE, BGE_SBDIMODE_ENABLE);
+    // Turn on send BD initiator state machine.
+    writeNICMem(BGE_SBDI_MODE, BGE_SBDIMODE_ENABLE);
 
-	// Turn on send BD selector state machine.
-	writeNICMem(BGE_SRS_MODE, BGE_SRSMODE_ENABLE);
+    // Turn on send BD selector state machine.
+    writeNICMem(BGE_SRS_MODE, BGE_SRSMODE_ENABLE);
 
-	writeNICMem(BGE_SDI_STATS_ENABLE_MASK, 0xFFFFFF);
-	writeNICMem(BGE_SDI_STATS_CTL, BGE_SDISTATSCTL_ENABLE | BGE_SDISTATSCTL_FASTER);
+    writeNICMem(BGE_SDI_STATS_ENABLE_MASK, 0xFFFFFF);
+    writeNICMem(BGE_SDI_STATS_CTL, BGE_SDISTATSCTL_ENABLE | BGE_SDISTATSCTL_FASTER);
 
-	// ack/clear link change events.
-	writeNICMem(BGE_MAC_STS, BGE_MACSTAT_SYNC_CHANGED |
+    // ack/clear link change events.
+    writeNICMem(BGE_MAC_STS, BGE_MACSTAT_SYNC_CHANGED |
                 BGE_MACSTAT_CFG_CHANGED | BGE_MACSTAT_MI_COMPLETE |
                 BGE_MACSTAT_LINK_CHANGED);
-	writeNICMem(BGE_MI_STS, 0);
+    writeNICMem(BGE_MI_STS, 0);
 
-	// Enable PHY auto polling (for MII/GMII only).
+    // Enable PHY auto polling (for MII/GMII only).
     bcmSetBit(BGE_MI_MODE, BGE_MIMODE_AUTOPOLL | (10 << 16));
 
-	// Clear any pending link state attention.
-	writeNICMem(BGE_MAC_STS, BGE_MACSTAT_SYNC_CHANGED |
+    // Clear any pending link state attention.
+    writeNICMem(BGE_MAC_STS, BGE_MACSTAT_SYNC_CHANGED |
                 BGE_MACSTAT_CFG_CHANGED | BGE_MACSTAT_MI_COMPLETE |
                 BGE_MACSTAT_LINK_CHANGED);
 
-	// Enable link state change attentions.
-	bcmSetBit(BGE_MAC_EVT_ENB, BGE_EVTENB_LINK_CHANGED);
+    // Enable link state change attentions.
+    bcmSetBit(BGE_MAC_EVT_ENB, BGE_EVTENB_LINK_CHANGED);
 
     // Specify MTU.
     writeNICMem(BGE_RX_MTU, BGE_MAX_FRAMELEN);
     // FIXME: correct mtu?
-	//writeNICMem(BGE_RX_MTU, mNetworkInterface->getMaxTransferUnit() +
+    //writeNICMem(BGE_RX_MTU, mNetworkInterface->getMaxTransferUnit() +
     //                        ETH_HDR_LEN + ETH_CRC_LEN + ETH_VLAN_TAG_LEN);
 
     // Turn on transmitter.
-	bcmSetBit(BGE_TX_MODE, BGE_TXMODE_ENABLE);
+    bcmSetBit(BGE_TX_MODE, BGE_TXMODE_ENABLE);
 
-	// Turn on receiver.
+    // Turn on receiver.
     // FIXME: unwanted promisc
     bcmSetBit(BGE_RX_MODE, BGE_RXMODE_RX_PROMISC);
-	bcmSetBit(BGE_RX_MODE, BGE_RXMODE_ENABLE);
+    bcmSetBit(BGE_RX_MODE, BGE_RXMODE_ENABLE);
 
-	// Tell firmware we're alive.
-	bcmSetBit(BGE_MODE_CTL, BGE_MODECTL_STACKUP);
+    // Tell firmware we're alive.
+    bcmSetBit(BGE_MODE_CTL, BGE_MODECTL_STACKUP);
 
-	// Enable host interrupts.
+    // Enable host interrupts.
     bcmSetBit(BGE_PCI_MISC_CTL, BGE_PCIMISCCTL_CLEAR_INTA);
-	bcmClrBit(BGE_PCI_MISC_CTL, BGE_PCIMISCCTL_MASK_PCI_INTR);
+    bcmClrBit(BGE_PCI_MISC_CTL, BGE_PCIMISCCTL_MASK_PCI_INTR);
     writeRegisterMailbox(BGE_MBX_IRQ0_LO, 0);
 
     return true;
@@ -1374,14 +1374,14 @@ void BCM5906MEthernet::initChip()
     bcmSetBit(BGE_MODE_CTL, BGE_MODECTL_STACKUP);
 
     /*
-	 * Disable memory write invalidate.  Apparently it is not supported
-	 * properly by these devices.  Also ensure that INTx isn't disabled,
-	 * as these chips need it even when using MSI.
-	 */
+     * Disable memory write invalidate.  Apparently it is not supported
+     * properly by these devices.  Also ensure that INTx isn't disabled,
+     * as these chips need it even when using MSI.
+     */
     mPCIDevice->setConfigBits(kIOPCIConfigCommand, kIOPCICommandInterruptDisable | kIOPCICommandMemWrInvalidate,
                               ~(kIOPCICommandInterruptDisable | kIOPCICommandMemWrInvalidate));
 
-	// The Linux tg3 driver does this at the start of brgphy_reset.
+    // The Linux tg3 driver does this at the start of brgphy_reset.
     IODelay(40);
     // Put PHY into ready state.
     bcmClrBit(BGE_MISC_CFG, BGE_MISCCFG_EPHY_IDDQ);
@@ -1413,10 +1413,10 @@ void BCM5906MEthernet::resetChip()
                               BGE_PCIMISCCTL_PCISTATE_RW);
 
     /*
-	 * Write the magic number to SRAM at offset 0xB50.
-	 * When firmware finishes its initialization it will
-	 * write ~BGE_MAGIC_NUMBER to the same location.
-	 */
+     * Write the magic number to SRAM at offset 0xB50.
+     * When firmware finishes its initialization it will
+     * write ~BGE_MAGIC_NUMBER to the same location.
+     */
     writeNICMemIndirect(BGE_SOFTWARE_GENCOMM, BGE_MAGIC_NUMBER);
 
     // Prevent PCIE link training during global reset.
@@ -1541,15 +1541,15 @@ void BCM5906MEthernet::publishMedium()
 
 void BCM5906MEthernet::addMediumType(UInt32 type, UInt32 speed, UInt32 index)
 {
-    IONetworkMedium	* medium;
-	bool result;
+    IONetworkMedium    * medium;
+    bool result;
 
-	medium = IONetworkMedium::medium(type, speed, 0, index);
-	if (medium)
-	{
-		result = IONetworkMedium::addMedium(mMediumDict, medium);
-		if (result)
-			mMediumTable[index] = medium;
+    medium = IONetworkMedium::medium(type, speed, 0, index);
+    if (medium)
+    {
+        result = IONetworkMedium::addMedium(mMediumDict, medium);
+        if (result)
+            mMediumTable[index] = medium;
         else
         {
             mMediumTable[index] = 0;
@@ -1562,27 +1562,27 @@ IOReturn BCM5906MEthernet::selectMedium(const IONetworkMedium *medium)
 {
     bool  success;
 
-	if (OSDynamicCast(IONetworkMedium, medium) == 0)
+    if (OSDynamicCast(IONetworkMedium, medium) == 0)
     {
         // Defaults to Auto.
         medium = phyGetMediumWithType(BGE_MEDIUM_AUTO);
         if (medium == 0)
-		{
-			DLOG("Error getting medium");
-			return kIOReturnError;
-		}
+        {
+            DLOG("Error getting medium");
+            return kIOReturnError;
+        }
     }
 
-	// Program PHY to select the desired medium.
-	success = phySetMedium((bcmMediumType) medium->getIndex());
+    // Program PHY to select the desired medium.
+    success = phySetMedium((bcmMediumType) medium->getIndex());
     if (!success)
         DLOG("phySetMedium failed");
 
-	// Update the current medium property.
-	if (!setCurrentMedium(medium))
-		DLOG("setCurrentMedium error");
+    // Update the current medium property.
+    if (!setCurrentMedium(medium))
+        DLOG("setCurrentMedium error");
 
-	return (success ? kIOReturnSuccess : kIOReturnIOError);
+    return (success ? kIOReturnSuccess : kIOReturnIOError);
 }
 
 #pragma mark -
@@ -1729,8 +1729,8 @@ bool BCM5906MEthernet::phySetMedium(bcmMediumType mediumType)
     UInt32 miiControl = miiReadReg(BGE_MII_CTL);
     miiControl &= BGE_MII_CTL_AUTONEG_DISABLE;
 
-	switch (mediumType)
-	{
+    switch (mediumType)
+    {
         case BGE_MEDIUM_10HD:
             miiControl &= BGE_MII_CTL_FORCED_10;
             miiControl &= BGE_MII_CTL_DUPLEX_HALF;
@@ -1752,10 +1752,10 @@ bool BCM5906MEthernet::phySetMedium(bcmMediumType mediumType)
             miiControl |= BGE_MII_CTL_DUPLEX_FULL;
             break;
 
-		default:
-			return false;
-			break;
-	}
+        default:
+            return false;
+            break;
+    }
 
     miiWriteReg(BGE_MII_CTL, miiControl);
     return true;
@@ -1819,34 +1819,34 @@ bcmMediumType BCM5906MEthernet::phyGetActiveMedium()
     bcmMediumType medium;
 
     UInt32 anar = miiReadReg(BGE_MII_ANAR);
-	UInt32 anlpar = miiReadReg(BGE_MII_ANLPAR);
-	UInt32 common = anar & anlpar;
+    UInt32 anlpar = miiReadReg(BGE_MII_ANLPAR);
+    UInt32 common = anar & anlpar;
 
     if (common & BGE_MII_ANAR_T4)
-	{
-		DLOG("100 T4 Active");
-		medium = BGE_MEDIUM_100T4;
-	}
+    {
+        DLOG("100 T4 Active");
+        medium = BGE_MEDIUM_100T4;
+    }
     else if (common & BGE_MII_ANAR_TX_FD)
-	{
-		DLOG("100 TX FD Active");
-		medium = BGE_MEDIUM_100FD;
-	}
+    {
+        DLOG("100 TX FD Active");
+        medium = BGE_MEDIUM_100FD;
+    }
     else if (common & BGE_MII_ANAR_TX_HD)
-	{
-		DLOG("100 TX HD Active");
-		medium = BGE_MEDIUM_100HD;
-	}
+    {
+        DLOG("100 TX HD Active");
+        medium = BGE_MEDIUM_100HD;
+    }
     else if (common & BGE_MII_ANAR_10_FD)
-	{
-		DLOG("10 TX FD Active");
-		medium = BGE_MEDIUM_10FD;
-	}
+    {
+        DLOG("10 TX FD Active");
+        medium = BGE_MEDIUM_10FD;
+    }
     else
-	{
-		DLOG("10 TX HD Active");
-		medium = BGE_MEDIUM_10HD;
-	}
+    {
+        DLOG("10 TX HD Active");
+        medium = BGE_MEDIUM_10HD;
+    }
 
     return medium;
 }

@@ -18,7 +18,7 @@ bool BCM5906MEthernet::start(IOService *provider)
     {
         if (super::start(provider) != true)
         {
-            DLOG("super::start failed");
+            DLOG("super::start() failed.");
             break;
         }
         started = true;
@@ -33,25 +33,25 @@ bool BCM5906MEthernet::start(IOService *provider)
 
         if (initDriverObjects(provider) == false)
         {
-            DLOG("initDriverObjects failed");
+            DLOG("initDriverObjects() failed.");
             break;
         }
 
         if (allocateTxMemory() == false)
         {
-            DLOG("Can't allocate TX memory!");
+            DLOG("Can't allocate TX memory.");
             break;
         }
 
         if (allocateRxMemory() == false)
         {
-            DLOG("Can't allocate RX memory!");
+            DLOG("Can't allocate RX memory.");
             break;
         }
 
         if (allocateStatusBlockMemory() == false)
         {
-            DLOG("Can't allocate Status Block memory!");
+            DLOG("Can't allocate status block memory.");
             break;
         }
 
@@ -60,7 +60,7 @@ bool BCM5906MEthernet::start(IOService *provider)
         mMemoryMap = mPCIDevice->mapDeviceMemoryWithRegister(kIOPCIConfigBaseAddress0, kIOMapInhibitCache);
         if (mMemoryMap == NULL)
         {
-            DLOG("mMemoryMap failed");
+            DLOG("mapDeviceMemoryWithRegister() failed.");
             break;
         }
         mNICBaseAddr = mMemoryMap->getVirtualAddress();
@@ -70,20 +70,20 @@ bool BCM5906MEthernet::start(IOService *provider)
 
         if (readEthernetAddress() == false)
         {
-            DLOG("Failed to read MAC address");
+            DLOG("Failed to read MAC address.");
             break;
         }
 
         if (phyInit() == false)
         {
-            DLOG("Failed to init PHY");
+            DLOG("Failed to init PHY.");
             break;
         }
 
         publishMedium();
         if (publishMediumDictionary(mMediumDict) == false)
         {
-            DLOG("Failed to publish media support");
+            DLOG("Failed to publish media support.");
             break;
         }
 
@@ -208,15 +208,15 @@ bool BCM5906MEthernet::initDriverObjects(IOService *provider)
     mTransmitQueue = getOutputQueue();
     if (mTransmitQueue == 0)
     {
-        DLOG ("initDriverObjects - no transmit queue was created");
+        DLOG ("No transmit queue was created.");
         return false;
     }
 
-    // Get our work loop
+    // Get our work loop.
     IOWorkLoop *workLoop = (IOWorkLoop *) getWorkLoop();
     if (!workLoop)
     {
-        DLOG("initDriverObjects - no work loop was created");
+        DLOG("No work loop was created.");
         return false;
     }
 
@@ -224,7 +224,7 @@ bool BCM5906MEthernet::initDriverObjects(IOService *provider)
     mMemoryCursor = IOMbufNaturalMemoryCursor::withSpecification(BGE_MAX_FRAMELEN, 1);
     if (!mMemoryCursor)
     {
-        DLOG("Mbuf cursor allocation error");
+        DLOG("Mbuf cursor allocation error.");
         return false;
     }
 
@@ -239,7 +239,7 @@ bool BCM5906MEthernet::initDriverObjects(IOService *provider)
                                                                              provider);
     if (!mInterruptSrc || (workLoop->addEventSource(mInterruptSrc) != kIOReturnSuccess))
     {
-        DLOG("initDriverObjects - IOInterruptEventSource error");
+        DLOG("IOInterruptEventSource error.");
         return false;
     }
     mInterruptSrc->enable();
@@ -247,7 +247,7 @@ bool BCM5906MEthernet::initDriverObjects(IOService *provider)
     mMediumDict = OSDictionary::withCapacity(6);
     if(!mMediumDict)
     {
-        DLOG("Failed to create medium dictionary");
+        DLOG("Failed to create medium dictionary.");
         return false;
     }
 
@@ -256,7 +256,7 @@ bool BCM5906MEthernet::initDriverObjects(IOService *provider)
 
 bool BCM5906MEthernet::configureInterface(IONetworkInterface *netif)
 {
-    IONetworkData * data;
+    IONetworkData *data;
 
     if (super::configureInterface(netif) == false)
         return false;
@@ -294,12 +294,12 @@ IOWorkLoop *BCM5906MEthernet::getWorkLoop(void) const
 #pragma mark Vendor/Model
 #pragma mark -
 
-const OSString * BCM5906MEthernet::newVendorString(void) const
+const OSString *BCM5906MEthernet::newVendorString(void) const
 {
     return OSString::withCString("Broadcom Corporation");
 }
 
-const OSString * BCM5906MEthernet::newModelString(void) const
+const OSString *BCM5906MEthernet::newModelString(void) const
 {
     return OSString::withCString("NetLink BCM5906M Fast Ethernet PCI Express");
 }
@@ -315,13 +315,13 @@ bool BCM5906MEthernet::allocateRxMemory()
                                                                      BGE_RX_RING_SZ, mPCICacheSize);
     if (mReceiveProducerRingDesc == 0)
     {
-        DLOG("No memory for Receive Producer Ring");
+        DLOG("No memory for receive rroducer ring.");
         return false;
     }
 
     if (mReceiveProducerRingDesc->prepare() != kIOReturnSuccess)
     {
-        DLOG("Receive Producer Ring prepare() failed");
+        DLOG("Receive producer ring prepare() failed.");
         mReceiveProducerRingDesc->release();
         mReceiveProducerRingDesc = 0;
         return false;
@@ -330,7 +330,7 @@ bool BCM5906MEthernet::allocateRxMemory()
     mReceiveProducerRingPhysAddr = mReceiveProducerRingDesc->getPhysicalSegment(0, 0);
     if (mReceiveProducerRingPhysAddr == 0)
     {
-        DLOG("Receive Producer Ring getPhysicalSegment failed");
+        DLOG("Receive producer ring getPhysicalSegment() failed.");
         return false;
     }
 
@@ -342,13 +342,13 @@ bool BCM5906MEthernet::allocateRxMemory()
                                                                    BGE_RX_RING_SZ, mPCICacheSize);
     if (mReceiveReturnRingDesc == 0)
     {
-        DLOG("No memory for Receive Return Ring");
+        DLOG("No memory for receive return ring.");
         return false;
     }
 
     if (mReceiveReturnRingDesc->prepare() != kIOReturnSuccess)
     {
-        DLOG("Receive Return Ring prepare() failed");
+        DLOG("Receive return ring prepare() failed.");
         mReceiveReturnRingDesc->release();
         mReceiveReturnRingDesc = 0;
         return false;
@@ -357,7 +357,7 @@ bool BCM5906MEthernet::allocateRxMemory()
     mReceiveReturnRingPhysAddr = mReceiveReturnRingDesc->getPhysicalSegment(0, 0);
     if (mReceiveReturnRingPhysAddr == 0)
     {
-        DLOG("Receive Return Ring getPhysicalSegment failed");
+        DLOG("Receive return ring getPhysicalSegment() failed.");
         return false;
     }
 
@@ -367,7 +367,7 @@ bool BCM5906MEthernet::allocateRxMemory()
     mRxPacketArray = IONew(mbuf_t, BGE_RX_RING_CNT);
     if (mRxPacketArray == 0)
     {
-        DLOG("Can't get memory for RX packets");
+        DLOG("Can't get memory for RX packets.");
         return false;
     }
     memset(mRxPacketArray, 0, BGE_RX_RING_CNT * sizeof(mbuf_t));
@@ -479,7 +479,6 @@ void BCM5906MEthernet::serviceRxInterrupt()
     UInt16 rxIndex = 0;
     UInt32 checksumValidMask = 0;
     mbuf_t packet;
-    bool hasVLan;
     bool replaced;
     bool inputFail;
 
@@ -495,7 +494,6 @@ void BCM5906MEthernet::serviceRxInterrupt()
 
         rxIndex = receiveBD->index;
         inputFail = false;
-        hasVLan = false;
 
         // Frame has error.
         if (receiveBD->flags & BGE_RXBDFLAG_ERROR)
@@ -519,10 +517,7 @@ void BCM5906MEthernet::serviceRxInterrupt()
 
         // Frame has vlan tag.
         if (receiveBD->flags & BGE_RXBDFLAG_VLAN_TAG)
-        {
-            hasVLan = true;
-            vlanTag = receiveBD->vlanTag;
-        }
+            setVlanTag(packet, receiveBD->vlanTag);
 
         if (receiveBD->flags & BGE_RXBDFLAG_IP_CSUM)
             checksumValidMask |= kChecksumIP;
@@ -532,9 +527,6 @@ void BCM5906MEthernet::serviceRxInterrupt()
 
         setChecksumResult(packet, kChecksumFamilyTCPIP,
                           (kChecksumIP | kChecksumTCP | kChecksumUDP), checksumValidMask);
-
-        if (hasVLan)
-            setVlanTag(packet, vlanTag);
 
         mNetworkInterface->inputPacket(packet, receiveBD->length - ETH_CRC_LEN,
                                        IONetworkInterface::kInputOptionQueuePacket);
@@ -559,13 +551,13 @@ bool BCM5906MEthernet::allocateTxMemory()
                                                           BGE_TX_RING_SZ, mPCICacheSize);
     if (mSendRingDesc == 0)
     {
-        DLOG("No memory for Send Ring");
+        DLOG("No memory for send ring.");
         return false;
     }
 
     if (mSendRingDesc->prepare() != kIOReturnSuccess)
     {
-        DLOG("Send Rings's memory prepare() failed");
+        DLOG("Send ring memory prepare() failed.");
         mSendRingDesc->release();
         mSendRingDesc = 0;
         return false;
@@ -574,7 +566,7 @@ bool BCM5906MEthernet::allocateTxMemory()
     mSendRingPhysAddr = mSendRingDesc->getPhysicalSegment(0, 0);
     if (mSendRingPhysAddr == 0)
     {
-        DLOG("Send Ring getPhysicalSegment failed");
+        DLOG("Send ring getPhysicalSegment() failed.");
         return false;
     }
 
@@ -584,7 +576,7 @@ bool BCM5906MEthernet::allocateTxMemory()
     mTxPacketArray = IONew(mbuf_t, BGE_TX_RING_CNT);
     if (mTxPacketArray == 0)
     {
-        DLOG("Can't get memory for TX packets");
+        DLOG("Can't get memory for TX packets.");
         return false;
     }
     memset(mTxPacketArray, 0, BGE_TX_RING_CNT * sizeof(mbuf_t));
@@ -752,13 +744,13 @@ bool BCM5906MEthernet::allocateStatusBlockMemory()
                                                              sizeof(bcmStatusBlock));
     if (mStatusBlockDesc == 0)
     {
-        DLOG("No memory for Status Block");
+        DLOG("No memory for status block.");
         return false;
     }
 
     if (mStatusBlockDesc->prepare() != kIOReturnSuccess)
     {
-        DLOG("Status Block memory prepare() failed");
+        DLOG("Status block memory prepare() failed.");
         mStatusBlockDesc->release();
         mStatusBlockDesc = 0;
         return false;
@@ -767,7 +759,7 @@ bool BCM5906MEthernet::allocateStatusBlockMemory()
     mStatusBlockPhysAddr = mStatusBlockDesc->getPhysicalSegment(0, 0);
     if (mStatusBlockPhysAddr == 0)
     {
-        DLOG("Status Block getPhysicalSegment failed");
+        DLOG("Status block getPhysicalSegment() failed.");
         return false;
     }
 
@@ -878,37 +870,6 @@ void BCM5906MEthernet::interruptHandler(OSObject *owner, IOInterruptEventSource 
     // Disable interrupts.
     writeRegisterMailbox(BGE_MBX_IRQ0_LO, 1);
 
-    /*DLOG("sw 0x%x", (unsigned int) mStatusBlockAddr->statusWord);
-    if (mStatusBlockAddr->statusWord & BGE_STATUSWORD_ERROR)
-    {
-        DLOG("BGE_FLOW_ATTN: 0x%x", readNICMem(BGE_FLOW_ATTN));
-        DLOG("BGE_MAC_STS: 0x%x", readNICMem(BGE_MAC_STS));
-        DLOG("BGE_MSI_STATUS: 0x%x", readNICMem(BGE_MSI_STATUS));
-        DLOG("BGE_RDMA_STATUS: 0x%x", readNICMem(BGE_RDMA_STATUS));
-        DLOG("BGE_WDMA_STATUS: 0x%x", readNICMem(BGE_WDMA_STATUS));
-        DLOG("BGE_RXCPU_STATUS: 0x%x", readNICMem(BGE_RXCPU_STATUS));
-        DLOG("BGE_RX_MODE: 0x%x", readNICMem(BGE_RX_MODE));
-    }
-
-    DLOG("ran out %d", readNICMem(BGE_RXLP_LOCSTAT_OUT_OF_BDS));
-    DLOG("frames send %d", readNICMem(BGE_LOCSTATS_COS0));
-    DLOG("good dropped %d", readNICMem(BGE_RXLP_LOCSTAT_FILTDROP));
-    DLOG("rx placed 1 %d", readNICMem(BGE_RXLP_LOCSTAT_COS0));
-    DLOG("rx placed 2 %d", readNICMem(BGE_RXLP_LOCSTAT_COS1));
-    DLOG("rx placed 2 %d", readNICMem(BGE_RXLP_LOCSTAT_COS2));
-    DLOG("rx placed 2 %d", readNICMem(BGE_RXLP_LOCSTAT_COS3));
-    DLOG("discarded %d", readNICMem(BGE_RXLP_LOCSTAT_IFIN_DROPS));
-    DLOG("errored %d", readNICMem(BGE_RXLP_LOCSTAT_IFIN_ERRORS));
-
-    DLOG("ifHCInOctets %d", readNICMem(0x0880));
-    DLOG("dot3StatsFCSErrors %d", readNICMem(0x0898));
-    DLOG("dot3StatsAlignmentErrors %d", readNICMem(0x089C));
-    DLOG("xonPauseFramesReceived %d", readNICMem(0x08A0));
-    DLOG("xoffPauseFramesReceived %d", readNICMem(0x08A4));
-    DLOG("dot3StatsFramesTooLongs %d", readNICMem(0x08B0));
-    DLOG("etherStatsUndersizePkts %d", readNICMem(0x08B8));
-     */
-
     // Nothing to examine.
     if (!(mStatusBlockAddr->statusWord & BGE_STATUSWORD_WAS_UPDATED))
         return;
@@ -945,7 +906,6 @@ bool BCM5906MEthernet::interruptFilter(OSObject *owner, IOFilterInterruptEventSo
 #pragma mark Promiscuous/Multicast/Checksum
 #pragma mark -
 
-// FIXME: Implement
 IOReturn BCM5906MEthernet::setPromiscuousMode(bool active)
 {
     if (active)
@@ -958,11 +918,13 @@ IOReturn BCM5906MEthernet::setPromiscuousMode(bool active)
 
 IOReturn BCM5906MEthernet::setMulticastMode(bool active)
 {
+    // FIXME: Implement
     return kIOReturnSuccess;
 }
 
 IOReturn BCM5906MEthernet::setMulticastList(IOEthernetAddress *addrList, UInt32 count)
 {
+    // FIXME: Implement
     return kIOReturnSuccess;
 }
 
@@ -1074,7 +1036,7 @@ bool BCM5906MEthernet::initBlock()
 
     if (i == BGE_TIMEOUT)
     {
-        DLOG("Can't start NIC buffer manager");
+        DLOG("Can't start NIC buffer manager.");
         return false;
     }
 
@@ -1092,7 +1054,7 @@ bool BCM5906MEthernet::initBlock()
 
     if (i == BGE_TIMEOUT)
     {
-        DLOG("Flow-through queue init failed");
+        DLOG("Flow-through queue init failed.");
         return false;
     }
 
@@ -1210,13 +1172,13 @@ bool BCM5906MEthernet::initBlock()
     writeNICMem(BGE_HCC_RX_MAX_COAL_BDS_INT, 1);
     writeNICMem(BGE_HCC_TX_MAX_COAL_BDS_INT, 1);
 
-    // Set up address of statistics block.
-    // FIXME: stats
+    // Set up address of the statistics block.
+    // FIXME: statistics
     //writeNICMem(BGE_HCC_STATS_ADDR_HI, BGE_ADDR_HI(sc->bge_ldata.bge_stats_paddr));
     //writeNICMem(BGE_HCC_STATS_ADDR_LO, BGE_ADDR_LO(sc->bge_ldata.bge_stats_paddr));
     writeNICMem(BGE_HCC_STATUSBLK_BASEADDR, BGE_STATUS_BLOCK);
 
-    // Set up address of status block.
+    // Set up address of the status block.
     writeNICMem(BGE_HCC_STATUSBLK_ADDR_HI, BGE_ADDR_HI(mStatusBlockPhysAddr));
     writeNICMem(BGE_HCC_STATUSBLK_ADDR_LO, BGE_ADDR_LO(mStatusBlockPhysAddr));
 
@@ -1277,8 +1239,7 @@ bool BCM5906MEthernet::initBlock()
     writeNICMem(BGE_SBDC_MODE, BGE_SBDCMODE_ENABLE);
 
     // Turn on send data completion state machine.
-    val = BGE_SDCMODE_ENABLE;
-    writeNICMem(BGE_SDC_MODE, val);
+    writeNICMem(BGE_SDC_MODE, BGE_SDCMODE_ENABLE);
 
     // Turn on send data initiator state machine.
     writeNICMem(BGE_SDI_MODE, BGE_SDIMODE_ENABLE);
@@ -1371,9 +1332,8 @@ void BCM5906MEthernet::initChip()
      */
     mPCIDevice->setConfigBits(kIOPCIConfigCommand, kIOPCICommandInterruptDisable | kIOPCICommandMemWrInvalidate,
                               ~(kIOPCICommandInterruptDisable | kIOPCICommandMemWrInvalidate));
-
-    // The Linux tg3 driver does this at the start of brgphy_reset.
     IODelay(40);
+
     // Put PHY into ready state.
     bcmClrBit(BGE_MISC_CFG, BGE_MISCCFG_EPHY_IDDQ);
     readNICMem(BGE_MISC_CFG);
@@ -1515,10 +1475,10 @@ void BCM5906MEthernet::publishMedium()
     addMediumType(kIOMediumEthernetAuto, 0, BGE_MEDIUM_AUTO);
 
     if (miiStatus & BGE_CAPABLE_10_HD)
-        addMediumType(kIOMediumEthernet10BaseT | kIOMediumOptionHalfDuplex, MBPS_10, BGE_MEDIUM_10HD);
+        addMediumType(kIOMediumEthernet10BaseT   | kIOMediumOptionHalfDuplex, MBPS_10,  BGE_MEDIUM_10HD);
 
     if (miiStatus & BGE_CAPABLE_10_FD)
-        addMediumType(kIOMediumEthernet10BaseT | kIOMediumOptionFullDuplex, MBPS_10, BGE_MEDIUM_10FD);
+        addMediumType(kIOMediumEthernet10BaseT   | kIOMediumOptionFullDuplex, MBPS_10,  BGE_MEDIUM_10FD);
 
     if (miiStatus & BGE_CAPABLE_100_TX_HD)
         addMediumType(kIOMediumEthernet100BaseTX | kIOMediumOptionHalfDuplex, MBPS_100, BGE_MEDIUM_100HD);
@@ -1532,7 +1492,7 @@ void BCM5906MEthernet::publishMedium()
 
 void BCM5906MEthernet::addMediumType(UInt32 type, UInt32 speed, UInt32 index)
 {
-    IONetworkMedium    * medium;
+    IONetworkMedium *medium;
     bool result;
 
     medium = IONetworkMedium::medium(type, speed, 0, index);
@@ -1551,15 +1511,15 @@ void BCM5906MEthernet::addMediumType(UInt32 type, UInt32 speed, UInt32 index)
 
 IOReturn BCM5906MEthernet::selectMedium(const IONetworkMedium *medium)
 {
-    bool  success;
+    bool success;
 
     if (OSDynamicCast(IONetworkMedium, medium) == 0)
     {
-        // Defaults to Auto.
+        // Default is autonegotiation.
         medium = phyGetMediumWithType(BGE_MEDIUM_AUTO);
         if (medium == 0)
         {
-            DLOG("Error getting medium");
+            DLOG("Error getting medium.");
             return kIOReturnError;
         }
     }
@@ -1567,11 +1527,11 @@ IOReturn BCM5906MEthernet::selectMedium(const IONetworkMedium *medium)
     // Program PHY to select the desired medium.
     success = phySetMedium((bcmMediumType) medium->getIndex());
     if (!success)
-        DLOG("phySetMedium failed");
+        DLOG("phySetMedium() failed.");
 
     // Update the current medium property.
     if (!setCurrentMedium(medium))
-        DLOG("setCurrentMedium error");
+        DLOG("setCurrentMedium() error.");
 
     return (success ? kIOReturnSuccess : kIOReturnIOError);
 }
@@ -1791,13 +1751,13 @@ void BCM5906MEthernet::phyGetLinkStatus(bool firstPoll)
             // Link is up.
             IONetworkMedium *activeMedium = phyGetMediumWithType(phyGetActiveMedium());
             setLinkStatus(kIONetworkLinkValid | kIONetworkLinkActive, activeMedium);
-            DLOG("Link is up");
+            DLOG("Link is up.");
         }
         else
         {
             // Link is down.
             setLinkStatus(kIONetworkLinkValid, 0);
-            DLOG("Link is down");
+            DLOG("Link is down.");
         }
 
         // Save status.
@@ -1815,27 +1775,27 @@ bcmMediumType BCM5906MEthernet::phyGetActiveMedium()
 
     if (common & BGE_MII_ANAR_T4)
     {
-        DLOG("100 T4 Active");
+        DLOG("100 T4 Active.");
         medium = BGE_MEDIUM_100T4;
     }
     else if (common & BGE_MII_ANAR_TX_FD)
     {
-        DLOG("100 TX FD Active");
+        DLOG("100 TX FD Active.");
         medium = BGE_MEDIUM_100FD;
     }
     else if (common & BGE_MII_ANAR_TX_HD)
     {
-        DLOG("100 TX HD Active");
+        DLOG("100 TX HD Active.");
         medium = BGE_MEDIUM_100HD;
     }
     else if (common & BGE_MII_ANAR_10_FD)
     {
-        DLOG("10 TX FD Active");
+        DLOG("10 TX FD Active.");
         medium = BGE_MEDIUM_10FD;
     }
     else
     {
-        DLOG("10 TX HD Active");
+        DLOG("10 TX HD Active.");
         medium = BGE_MEDIUM_10HD;
     }
 

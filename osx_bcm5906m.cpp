@@ -1,3 +1,28 @@
+// Copyright (c) 2011, Vyacheslav Matyushin.
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// * Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+// * Redistributions in binary form must reproduce the above copyright
+// notice, this list of conditions and the following disclaimer in the
+// documentation and/or other materials provided with the distribution.
+// * Neither the name of the <organization> nor the
+// names of its contributors may be used to endorse or promote products
+// derived from this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+//  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 #include "osx_bcm5906m.h"
 #include "osx_bcm5906m_reg.h"
 
@@ -156,10 +181,10 @@ void BCM5906MEthernet::free(void)
 
 IOReturn BCM5906MEthernet::enable(IONetworkInterface *netif)
 {
+    resetChip();
+    initChip();
+    phyInit();
     initBlock();
-
-    mTransmitQueue->setCapacity(1024);
-    mTransmitQueue->start();
 
     initTxRing();
     if (!initRxRing())
@@ -171,29 +196,28 @@ IOReturn BCM5906MEthernet::enable(IONetworkInterface *netif)
     mTimerSrc->setTimeoutMS(timerInterval);
 
     // Start autonegotiation.
-    UInt32 miiControl = miiReadReg(BGE_MII_CTL);
-    miiControl |= BGE_MII_CTL_AUTONEG_ENABLE;
-    miiControl |= BGE_MII_CTL_RESTART_AUTONEG;
-    miiWriteReg(BGE_MII_CTL, miiControl);
-    miiWriteReg(BGE_MII_INTERRUPT, 0xFF00);
+    UInt32 miiControl = miiReadReg(BFE_MII_CTL);
+    miiControl |= BFE_MII_CTL_AUTONEG_ENABLE;
+    miiControl |= BFE_MII_CTL_RESTART_AUTONEG;
+    miiWriteReg(BFE_MII_CTL, miiControl);
+    miiWriteReg(BFE_MII_INTERRUPT, 0xFF00);
+
+    mTransmitQueue->setCapacity(1024);
+    mTransmitQueue->start();
 
     return kIOReturnSuccess;
 }
 
 IOReturn BCM5906MEthernet::disable(IONetworkInterface *netif)
 {
-    mTimerSrc->cancelTimeout();
-
-    resetChip();
-    initChip();
-
-    setLinkStatus(kIONetworkLinkValid);
-    IOSleep(20);
-
     mTransmitQueue->setCapacity(0);
     mTransmitQueue->flush();
     mTransmitQueue->stop();
 
+    mTimerSrc->cancelTimeout();
+    setLinkStatus(kIONetworkLinkValid);
+
+    stopChip();
     return kIOReturnSuccess;
 }
 
@@ -232,7 +256,7 @@ bool BCM5906MEthernet::initDriverObjects(IOService *provider)
     }
 
     // Create a mbuf cursor.
-    mMemoryCursor = IOMbufNaturalMemoryCursor::withSpecification(BGE_MAX_FRAMELEN, 1);
+    mMemoryCursor = IOMbufNaturalMemoryCursor::withSpecification(BFE_MAX_FRAMELEN, 1);
     if (!mMemoryCursor)
     {
         DLOG("Mbuf cursor allocation error.");
@@ -401,10 +425,10 @@ bool BCM5906MEthernet::readNVRAMByte(UInt32 offset, UInt8 *dest)
     int i;
 
     // Lock.
-    writeNICMem(BGE_NVRAM_SWARB, BGE_NVRAMSWARB_SET1);
+    writeNICMem(BFE_NVRAM_SWARB, BFE_NVRAMSWARB_SET1);
     for (i = 0; i < 8000; i++)
     {
-        if (readNICMem(BGE_NVRAM_SWARB) & BGE_NVRAMSWARB_GNT1)
+        if (readNICMem(BFE_NVRAM_SWARB) & BFE_NVRAMSWARB_GNT1)
             break;
         IODelay(20);
     }
@@ -412,34 +436,34 @@ bool BCM5906MEthernet::readNVRAMByte(UInt32 offset, UInt8 *dest)
         return false;
 
     // Enable access.
-    access = readNICMem(BGE_NVRAM_ACCESS);
-    writeNICMem(BGE_NVRAM_ACCESS, access | BGE_NVRAMACC_ENABLE);
+    access = readNICMem(BFE_NVRAM_ACCESS);
+    writeNICMem(BFE_NVRAM_ACCESS, access | BFE_NVRAMACC_ENABLE);
 
-    writeNICMem(BGE_NVRAM_ADDR, offset & 0xfffffffc);
-    writeNICMem(BGE_NVRAM_CMD, BGE_NVRAM_READCMD);
-    for (i = 0; i < BGE_TIMEOUT * 10; i++)
+    writeNICMem(BFE_NVRAM_ADDR, offset & 0xfffffffc);
+    writeNICMem(BFE_NVRAM_CMD, BFE_NVRAM_READCMD);
+    for (i = 0; i < BFE_TIMEOUT * 10; i++)
     {
         IODelay(10);
-        if (readNICMem(BGE_NVRAM_CMD) & BGE_NVRAMCMD_DONE)
+        if (readNICMem(BFE_NVRAM_CMD) & BFE_NVRAMCMD_DONE)
         {
             IODelay(10);
             break;
         }
     }
 
-    if (i == BGE_TIMEOUT * 10)
+    if (i == BFE_TIMEOUT * 10)
         return false;
 
-    // Get result.
-    byte = readNICMem(BGE_NVRAM_RDDATA);
+    // Get the result.
+    byte = readNICMem(BFE_NVRAM_RDDATA);
     *dest = (OSSwapInt32(byte) >> ((offset % 4) * 8)) & 0xFF;
 
     // Disable access.
-    writeNICMem(BGE_NVRAM_ACCESS, access);
+    writeNICMem(BFE_NVRAM_ACCESS, access);
 
     // Unlock.
-    writeNICMem(BGE_NVRAM_SWARB, BGE_NVRAMSWARB_CLR1);
-    readNICMem(BGE_NVRAM_SWARB);
+    writeNICMem(BFE_NVRAM_SWARB, BFE_NVRAMSWARB_CLR1);
+    readNICMem(BFE_NVRAM_SWARB);
 
     return true;
 }
@@ -449,7 +473,7 @@ bool BCM5906MEthernet::readEthernetAddress()
     bool success;
     for (int i = 0; i < 6; i++)
     {
-        success = readNVRAMByte(BGE_EE_MAC_OFFSET_5906 + 2 + i, &(mEtherAddr.bytes[i]));
+        success = readNVRAMByte(BFE_EE_MAC_OFFSET_5906 + 2 + i, &(mEtherAddr.bytes[i]));
         if (!success)
             break;
     }
@@ -463,36 +487,36 @@ bool BCM5906MEthernet::readEthernetAddress()
 void BCM5906MEthernet::interruptHandler(OSObject *owner, IOInterruptEventSource *sender, int count)
 {
     // Read Interrupt Mailbox 0 in order to flush any posted writes in the PCI chipset.
-    readRegisterMailbox(BGE_MBX_IRQ0_LO);
+    readRegisterMailbox(BFE_MBX_IRQ0_LO);
 
     // Disable interrupts.
-    writeRegisterMailbox(BGE_MBX_IRQ0_LO, 1);
+    writeRegisterMailbox(BFE_MBX_IRQ0_LO, 1);
 
     // Nothing to examine.
-    if (!(mStatusBlockAddr->statusWord & BGE_STATUSWORD_WAS_UPDATED))
+    if (!(mStatusBlockAddr->statusWord & BFE_STATUSWORD_WAS_UPDATED))
         return;
 
     // Clear the "statusblock was updated" bit as the NIC expects that from us.
-    mStatusBlockAddr->statusWord &= ~BGE_STATUSWORD_WAS_UPDATED;
+    mStatusBlockAddr->statusWord &= ~BFE_STATUSWORD_WAS_UPDATED;
 
-    if (mStatusBlockAddr->statusWord & BGE_STATUSWORD_LINK_CHANGED)
+    if (mStatusBlockAddr->statusWord & BFE_STATUSWORD_LINK_CHANGED)
     {
         phyGetLinkStatus(false);
-        writeNICMem(BGE_MAC_STS, 0xFFFFFFFF);
+        writeNICMem(BFE_MAC_STS, 0xFFFFFFFF);
     }
 
     serviceRxInterrupt();
     serviceTxInterrupt();
 
     // Enable interrupts.
-    writeRegisterMailbox(BGE_MBX_IRQ0_LO, 0);
+    writeRegisterMailbox(BFE_MBX_IRQ0_LO, 0);
 
     // Read Interrupt Mailbox 0 in order to flush any posted writes in the PCI chipset.
-    readRegisterMailbox(BGE_MBX_IRQ0_LO);
+    readRegisterMailbox(BFE_MBX_IRQ0_LO);
 
     // There is more work to do. Force another interrupt.
-    if (mStatusBlockAddr->statusWord & BGE_STATUSWORD_WAS_UPDATED)
-        bcmSetBit(BGE_MISC_LOCAL_CTL, 0x2);
+    if (mStatusBlockAddr->statusWord & BFE_STATUSWORD_WAS_UPDATED)
+        bfeSetBit(BFE_MISC_LOCAL_CTL, 0x2);
 }
 
 bool BCM5906MEthernet::interruptFilter(OSObject *owner, IOFilterInterruptEventSource *sender)
@@ -530,9 +554,9 @@ void BCM5906MEthernet::updateStatistics()
 IOReturn BCM5906MEthernet::setPromiscuousMode(bool active)
 {
     if (active)
-        bcmSetBit(BGE_RX_MODE, BGE_RXMODE_RX_PROMISC);
+        bfeSetBit(BFE_RX_MODE, BFE_RXMODE_RX_PROMISC);
     else
-        bcmClrBit(BGE_RX_MODE, BGE_RXMODE_RX_PROMISC);
+        bfeClrBit(BFE_RX_MODE, BFE_RXMODE_RX_PROMISC);
 
     return kIOReturnSuccess;
 }
@@ -549,7 +573,7 @@ IOReturn BCM5906MEthernet::setMulticastList(IOEthernetAddress *addrList, UInt32 
 
     if (count)
     {
-        for (int i = 0; i < count; i++)
+        for (UInt32 i = 0; i < count; i++)
         {
             crc = computeEthernetCRC32(&(addrList[i]));
             pos = ~crc & 0x7f;
@@ -558,10 +582,10 @@ IOReturn BCM5906MEthernet::setMulticastList(IOEthernetAddress *addrList, UInt32 
             hashes[index] |= (1 << pos);
         }
 
-        writeNICMem(BGE_MAR0, hashes[0]);
-        writeNICMem(BGE_MAR1, hashes[1]);
-        writeNICMem(BGE_MAR2, hashes[2]);
-        writeNICMem(BGE_MAR3, hashes[3]);
+        writeNICMem(BFE_MAR0, hashes[0]);
+        writeNICMem(BFE_MAR1, hashes[1]);
+        writeNICMem(BFE_MAR2, hashes[2]);
+        writeNICMem(BFE_MAR3, hashes[3]);
     }
 
     return kIOReturnSuccess;
@@ -615,35 +639,35 @@ UInt32 BCM5906MEthernet::readNICMemIndirect(UInt32 offset)
 {
     UInt32 data;
 
-    mPCIDevice->configWrite32(BGE_PCI_MEMWIN_BASEADDR, offset);
-    data = mPCIDevice->configRead32(BGE_PCI_MEMWIN_DATA);
-    mPCIDevice->configWrite32(BGE_PCI_MEMWIN_BASEADDR, 0);
+    mPCIDevice->configWrite32(BFE_PCI_MEMWIN_BASEADDR, offset);
+    data = mPCIDevice->configRead32(BFE_PCI_MEMWIN_DATA);
+    mPCIDevice->configWrite32(BFE_PCI_MEMWIN_BASEADDR, 0);
 
     return data;
 }
 
 void BCM5906MEthernet::writeNICMemIndirect(UInt32 offset, UInt32 data)
 {
-    mPCIDevice->configWrite32(BGE_PCI_MEMWIN_BASEADDR, offset);
-    mPCIDevice->configWrite32(BGE_PCI_MEMWIN_DATA, data);
-    mPCIDevice->configWrite32(BGE_PCI_MEMWIN_BASEADDR, 0);
+    mPCIDevice->configWrite32(BFE_PCI_MEMWIN_BASEADDR, offset);
+    mPCIDevice->configWrite32(BFE_PCI_MEMWIN_DATA, data);
+    mPCIDevice->configWrite32(BFE_PCI_MEMWIN_BASEADDR, 0);
 }
 
 void BCM5906MEthernet::writeRegisterIndirect(UInt32 offset, UInt32 data)
 {
-    mPCIDevice->configWrite32(BGE_PCI_REG_BASEADDR, offset);
-    mPCIDevice->configWrite32(BGE_PCI_REG_DATA, data);
+    mPCIDevice->configWrite32(BFE_PCI_REG_BASEADDR, offset);
+    mPCIDevice->configWrite32(BFE_PCI_REG_DATA, data);
 }
 
 UInt32 BCM5906MEthernet::readRegisterMailbox(UInt32 offset)
 {
-    offset += BGE_LPMBX_IRQ0_HI - BGE_MBX_IRQ0_HI;
+    offset += BFE_LPMBX_IRQ0_HI - BFE_MBX_IRQ0_HI;
     return readNICMem(offset);
 }
 
 void BCM5906MEthernet::writeRegisterMailbox(UInt32 offset, UInt32 data)
 {
-    offset += BGE_LPMBX_IRQ0_HI - BGE_MBX_IRQ0_HI;
+    offset += BFE_LPMBX_IRQ0_HI - BFE_MBX_IRQ0_HI;
     writeNICMem(offset, data);
 }
 
@@ -668,24 +692,24 @@ IOReturn BCM5906MEthernet::registerWithPolicyMaker(IOService *policyMaker)
 
 void BCM5906MEthernet::publishMedium()
 {
-    UInt32 miiStatus = miiReadReg(BGE_MII_STATUS);
+    UInt32 miiStatus = miiReadReg(BFE_MII_STATUS);
 
-    addMediumType(kIOMediumEthernetAuto, 0, BGE_MEDIUM_AUTO);
+    addMediumType(kIOMediumEthernetAuto, 0, BFE_MEDIUM_AUTO);
 
-    if (miiStatus & BGE_CAPABLE_10_HD)
-        addMediumType(kIOMediumEthernet10BaseT   | kIOMediumOptionHalfDuplex, MBPS_10,  BGE_MEDIUM_10HD);
+    if (miiStatus & BFE_CAPABLE_10_HD)
+        addMediumType(kIOMediumEthernet10BaseT   | kIOMediumOptionHalfDuplex, MBPS_10,  BFE_MEDIUM_10HD);
 
-    if (miiStatus & BGE_CAPABLE_10_FD)
-        addMediumType(kIOMediumEthernet10BaseT   | kIOMediumOptionFullDuplex, MBPS_10,  BGE_MEDIUM_10FD);
+    if (miiStatus & BFE_CAPABLE_10_FD)
+        addMediumType(kIOMediumEthernet10BaseT   | kIOMediumOptionFullDuplex, MBPS_10,  BFE_MEDIUM_10FD);
 
-    if (miiStatus & BGE_CAPABLE_100_TX_HD)
-        addMediumType(kIOMediumEthernet100BaseTX | kIOMediumOptionHalfDuplex, MBPS_100, BGE_MEDIUM_100HD);
+    if (miiStatus & BFE_CAPABLE_100_TX_HD)
+        addMediumType(kIOMediumEthernet100BaseTX | kIOMediumOptionHalfDuplex, MBPS_100, BFE_MEDIUM_100HD);
 
-    if (miiStatus & BGE_CAPABLE_100_TX_FD)
-        addMediumType(kIOMediumEthernet100BaseTX | kIOMediumOptionFullDuplex, MBPS_100, BGE_MEDIUM_100FD);
+    if (miiStatus & BFE_CAPABLE_100_TX_FD)
+        addMediumType(kIOMediumEthernet100BaseTX | kIOMediumOptionFullDuplex, MBPS_100, BFE_MEDIUM_100FD);
 
-    if (miiStatus & BGE_CAPABLE_100_T4)
-        addMediumType(kIOMediumEthernet100BaseT4, MBPS_100, BGE_MEDIUM_100T4);
+    if (miiStatus & BFE_CAPABLE_100_T4)
+        addMediumType(kIOMediumEthernet100BaseT4, MBPS_100, BFE_MEDIUM_100T4);
 }
 
 void BCM5906MEthernet::addMediumType(UInt32 type, UInt32 speed, UInt32 index)
@@ -709,7 +733,7 @@ void BCM5906MEthernet::addMediumType(UInt32 type, UInt32 speed, UInt32 index)
 
 IONetworkMedium *BCM5906MEthernet::getMediumWithType(bcmMediumType type)
 {
-    if (type < BGE_MEDIUM_AUTO || type > BGE_MEDIUM_100T4)
+    if (type < BFE_MEDIUM_AUTO || type > BFE_MEDIUM_100T4)
         return 0;
     return mMediumTable[type];
 }
@@ -721,7 +745,7 @@ IOReturn BCM5906MEthernet::selectMedium(const IONetworkMedium *medium)
     if (OSDynamicCast(IONetworkMedium, medium) == 0)
     {
         // Default is autonegotiation.
-        medium = getMediumWithType(BGE_MEDIUM_AUTO);
+        medium = getMediumWithType(BFE_MEDIUM_AUTO);
         if (medium == 0)
         {
             DLOG("Error getting medium.");

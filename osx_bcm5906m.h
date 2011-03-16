@@ -58,6 +58,8 @@ public:
     virtual UInt32 outputPacket(mbuf_t packet, void *param);
     virtual void getPacketBufferConstraints(IOPacketBufferConstraints *constraints) const;
 
+    virtual IOReturn registerWithPolicyMaker(IOService *policyMaker);
+
 private:
     bool initDriverObjects(IOService *provider);
     void initPCIConfigSpace(IOPCIDevice *pci);
@@ -96,6 +98,7 @@ private:
     bool readNVRAMByte(UInt32 offset, UInt8 *dest);
     bool readEthernetAddress();
 
+    // Chip
     bool initBlock();
     void initChip();
     void resetChip();
@@ -105,14 +108,14 @@ private:
     UInt32 miiReadReg(UInt32 reg);
     void miiWriteReg(UInt32 reg, UInt32 data);
     bool phyInit();
-    IONetworkMedium *phyGetMediumWithType(bcmMediumType type);
     bool phySetMedium(bcmMediumType mediumType);
-    void phyGetLinkStatus(bool firstPoll);
     bcmMediumType phyGetActiveMedium();
+    void phyGetLinkStatus(bool firstPoll);
 
     // Medium
     void publishMedium();
     void addMediumType(UInt32 type, UInt32 speed, UInt32 index);
+    IONetworkMedium *getMediumWithType(bcmMediumType type);
 
     // Event source handlers
     void interruptHandler(OSObject *owner, IOInterruptEventSource *sender, int count);
@@ -145,14 +148,12 @@ private:
     bcmSendBD *mSendRingAddr;
     mbuf_t *mTxPacketArray;
     IOOutputQueue *mTransmitQueue;
-    bcmRCB txRCB;
     UInt32 mTxLastCons;
     UInt32 mTxProd;
     UInt32 mTxDescBusy;
 
     // Receive
     mbuf_t *mRxPacketArray;
-    bcmRCB rxRCB;
 
     // Producer ring
     IOBufferMemoryDescriptor *mReceiveProducerRingDesc;

@@ -2514,6 +2514,10 @@ typedef struct
 #define	ASF_NEW_HANDSHAKE	2
 #define	ASF_STACKUP		4
 
+
+
+
+
 #define BGE_PHY_RESET 0x8000
 
 #define BGE_MII_CTL       0x00
@@ -2560,5 +2564,37 @@ typedef struct
 #define ETH_CRC_LEN         4
 #define ETH_HDR_LEN         (ETH_ADDR_LEN*2 + ETH_TYPE_LEN)
 #define ETH_VLAN_TAG_LEN    4
+
+// Statistics
+
+#define BFE_STAT_TX_IF_HC_OUT_OCTETS                            0x800
+#define BFE_STAT_TX_ETHER_STATS_COLLISIONS                      0x808
+#define BFE_STAT_TX_OUT_XON_SENT                                0x80C
+#define BFE_STAT_TX_OUT_XOFF_SEND                               0x810
+#define BFE_STAT_TX_DOT3_STATS_INTERNAL_MAC_TRANSMIT_ERRORS     0x818
+#define BFE_STAT_TX_DOT3_STATS_SINGLE_COLLISION_FRAMES          0x81C
+#define BFE_STAT_TX_DOT3_STATS_MULTIPLE_COLLISION_FRAMES        0x820
+#define BFE_STAT_TX_DOT3_STATS_DEFERRED_TRANSMISSIONS           0x824
+#define BFE_STAT_TX_DOT3_STATS_EXCESSIVE_COLLISIONS             0x82C
+#define BFE_STAT_TX_DOT3_STATS_LATE_COLLISIONS                  0x830
+#define BFE_STAT_TX_IF_HC_OUT_UCAST_PKTS                        0x86C
+#define BFE_STAT_TX_IF_HC_OUT_MULTICAST_PKTS                    0x870
+#define BFE_STAT_TX_IF_HC_OUT_BROADCAST_PKTS                    0x874
+
+#define BFE_STAT_RX_IF_HC_IN_OCTETS                             0x880
+#define BFE_STAT_RX_IF_HC_IN_BAD_OCTETS                         0x884
+#define BFE_STAT_RX_ETHER_STATS_FRAGMENTS                       0x888
+#define BFE_STAT_RX_IF_HC_IN_UCAST_PKTS                         0x88C
+#define BFE_STAT_RX_IF_HC_IN_MULTICAST_PKTS                     0x890
+#define BFE_STAT_RX_IF_HC_IN_BROADCAST_PKTS                     0x894
+#define BFE_STAT_RX_DOT3_STATS_FCS_ERRORS                       0x898
+#define BFE_STAT_RX_DOT3_STATS_ALIGNMENT_ERRORS                 0x89C
+#define BFE_STAT_RX_XON_PAUSE_FRAMES_RECEIVED                   0x8A0
+#define BFE_STAT_RX_XOFF_PAUSE_FRAMES_RECEIVED                  0x8A4
+#define BFE_STAT_RX_MAC_CONTROL_FRAMES_RECEIVED                 0x8A8
+#define BFE_STAT_RX_XOFF_STATE_ENTERED                          0x8AC
+#define BFE_STAT_RX_DOT3_STATS_FRAMES_TOO_LONG                  0x8B0
+#define BFE_STAT_RX_ETHER_STATS_JABBERS                         0x8B4
+#define BFE_STAT_RX_ETHER_STATS_UNDERSIZE_PKTS                  0x8B8
 
 #endif

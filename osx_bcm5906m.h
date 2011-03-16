@@ -9,6 +9,7 @@
 #include <IOKit/network/IOPacketQueue.h>
 #include <IOKit/network/IOMbufMemoryCursor.h>
 #include <IOKit/IOFilterInterruptEventSource.h>
+#include <IOKit/IOTimerEventSource.h>
 #include <IOKit/IOBufferMemoryDescriptor.h>
 #include <IOKit/IOMemoryDescriptor.h>
 #include <sys/kpi_mbuf.h>
@@ -113,8 +114,14 @@ private:
     void publishMedium();
     void addMediumType(UInt32 type, UInt32 speed, UInt32 index);
 
+    // Event source handlers
     void interruptHandler(OSObject *owner, IOInterruptEventSource *sender, int count);
     bool interruptFilter(OSObject *owner, IOFilterInterruptEventSource *sender);
+    void timeoutHandler(OSObject *owner, IOTimerEventSource *sender);
+
+    // Miscellaneous
+    UInt32 computeEthernetCRC32(IOEthernetAddress *addr);
+    void updateStatistics();
 
     IOEthernetAddress mEtherAddr;
     IOEthernetInterface *mNetworkInterface;
@@ -126,6 +133,8 @@ private:
     static const int mMediumTableSize = 6;
     IONetworkMedium *mMediumTable[mMediumTableSize];
     IOFilterInterruptEventSource *mInterruptSrc;
+    IOTimerEventSource *mTimerSrc;
+    static const UInt32 timerInterval = 5000;
     IONetworkStats *mNetStats;
     IOEthernetStats *mEtherStats;
     IOMbufNaturalMemoryCursor *mMemoryCursor;

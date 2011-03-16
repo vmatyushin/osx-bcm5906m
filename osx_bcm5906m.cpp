@@ -121,6 +121,12 @@ void BCM5906MEthernet::free(void)
         mWorkLoop->removeEventSource(mInterruptSrc);
     }
 
+    if (mWorkLoop && mTimerSrc)
+    {
+        mTimerSrc->cancelTimeout();
+        mWorkLoop->removeEventSource(mTimerSrc);
+    }
+
     if (mPCIDevice)
         mPCIDevice->close(this);
 
@@ -130,6 +136,7 @@ void BCM5906MEthernet::free(void)
 
     RELEASE(mMediumDict);
     RELEASE(mInterruptSrc);
+    RELEASE(mTimerSrc);
     RELEASE(mMemoryCursor);
     RELEASE(mMemoryMap);
     RELEASE(mNetworkInterface);
@@ -161,6 +168,8 @@ IOReturn BCM5906MEthernet::enable(IONetworkInterface *netif)
     selectMedium(getCurrentMedium());
     phyGetLinkStatus(true);
 
+    mTimerSrc->setTimeoutMS(timerInterval);
+
     // Start autonegotiation.
     UInt32 miiControl = miiReadReg(BGE_MII_CTL);
     miiControl |= BGE_MII_CTL_AUTONEG_ENABLE;
@@ -173,6 +182,8 @@ IOReturn BCM5906MEthernet::enable(IONetworkInterface *netif)
 
 IOReturn BCM5906MEthernet::disable(IONetworkInterface *netif)
 {
+    mTimerSrc->cancelTimeout();
+
     resetChip();
     initChip();
 
@@ -243,6 +254,16 @@ bool BCM5906MEthernet::initDriverObjects(IOService *provider)
         return false;
     }
     mInterruptSrc->enable();
+
+    // Attach a timer event source to our work loop.
+    mTimerSrc = IOTimerEventSource::timerEventSource(this, OSMemberFunctionCast(IOTimerEventSource::Action,
+                                                                                this,
+                                                                                &BCM5906MEthernet::timeoutHandler));
+    if (!mTimerSrc || (workLoop->addEventSource(mTimerSrc) != kIOReturnSuccess))
+    {
+        DLOG("IOTimerEventSource error.");
+        return false;
+    }
 
     mMediumDict = OSDictionary::withCapacity(6);
     if(!mMediumDict)
@@ -858,7 +879,7 @@ bool BCM5906MEthernet::readEthernetAddress()
 }
 
 #pragma mark -
-#pragma mark Interrupt
+#pragma mark Interrupt and timer
 #pragma mark -
 
 void BCM5906MEthernet::interruptHandler(OSObject *owner, IOInterruptEventSource *sender, int count)
@@ -901,6 +922,29 @@ bool BCM5906MEthernet::interruptFilter(OSObject *owner, IOFilterInterruptEventSo
     return true;
 }
 
+void BCM5906MEthernet::timeoutHandler(OSObject *owner, IOTimerEventSource *sender)
+{
+    updateStatistics();
+    mTimerSrc->setTimeoutMS(timerInterval);
+}
+
+void BCM5906MEthernet::updateStatistics()
+{
+    mNetStats->collisions = readNICMem(BFE_STAT_TX_ETHER_STATS_COLLISIONS);
+
+    mEtherStats->dot3StatsEntry.alignmentErrors = readNICMem(BFE_STAT_RX_DOT3_STATS_ALIGNMENT_ERRORS);
+    mEtherStats->dot3StatsEntry.deferredTransmissions = readNICMem(BFE_STAT_TX_DOT3_STATS_DEFERRED_TRANSMISSIONS);
+    mEtherStats->dot3StatsEntry.excessiveCollisions = readNICMem(BFE_STAT_TX_DOT3_STATS_EXCESSIVE_COLLISIONS);
+    mEtherStats->dot3StatsEntry.fcsErrors = readNICMem(BFE_STAT_RX_DOT3_STATS_FCS_ERRORS);
+    mEtherStats->dot3StatsEntry.frameTooLongs = readNICMem(BFE_STAT_RX_DOT3_STATS_FRAMES_TOO_LONG);
+    mEtherStats->dot3StatsEntry.internalMacTransmitErrors = readNICMem(BFE_STAT_TX_DOT3_STATS_INTERNAL_MAC_TRANSMIT_ERRORS);
+    mEtherStats->dot3StatsEntry.lateCollisions = readNICMem(BFE_STAT_TX_DOT3_STATS_LATE_COLLISIONS);
+    mEtherStats->dot3StatsEntry.multipleCollisionFrames = readNICMem(BFE_STAT_TX_DOT3_STATS_MULTIPLE_COLLISION_FRAMES);
+    mEtherStats->dot3StatsEntry.singleCollisionFrames = readNICMem(BFE_STAT_TX_DOT3_STATS_SINGLE_COLLISION_FRAMES);
+    mEtherStats->dot3RxExtraEntry.frameTooShorts = readNICMem(BFE_STAT_RX_ETHER_STATS_UNDERSIZE_PKTS);
+    mEtherStats->dot3TxExtraEntry.jabbers = readNICMem(BFE_STAT_RX_ETHER_STATS_JABBERS);
+}
+
 #pragma mark -
 #pragma mark Promiscuous/Multicast/Checksum
 #pragma mark -
@@ -917,13 +961,31 @@ IOReturn BCM5906MEthernet::setPromiscuousMode(bool active)
 
 IOReturn BCM5906MEthernet::setMulticastMode(bool active)
 {
-    // FIXME: Implement
     return kIOReturnSuccess;
 }
 
 IOReturn BCM5906MEthernet::setMulticastList(IOEthernetAddress *addrList, UInt32 count)
 {
-    // FIXME: Implement
+    UInt32 hashes[4] = {0};
+    UInt32 index, pos, crc;
+
+    if (count)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            crc = computeEthernetCRC32(&(addrList[i]));
+            pos = ~crc & 0x7f;
+            index = (pos & 0x60) >> 5;
+            pos &= 0x1f;
+            hashes[index] |= (1 << pos);
+        }
+
+        writeNICMem(BGE_MAR0, hashes[0]);
+        writeNICMem(BGE_MAR1, hashes[1]);
+        writeNICMem(BGE_MAR2, hashes[2]);
+        writeNICMem(BGE_MAR3, hashes[3]);
+    }
+
     return kIOReturnSuccess;
 }
 
@@ -935,6 +997,26 @@ IOReturn BCM5906MEthernet::getChecksumSupport(UInt32 *checksumMask, UInt32 check
     *checksumMask = kChecksumIP | kChecksumTCP | kChecksumUDP;
 
     return kIOReturnSuccess;
+}
+
+UInt32 BCM5906MEthernet::computeEthernetCRC32(IOEthernetAddress *addr)
+{
+    UInt32 reg = 0xffffffff;
+    UInt32 tmp;
+
+    for (int i = 0; i < kIOEthernetAddressSize; i++)
+    {
+        reg ^= addr->bytes[i];
+        for (int k = 0; k < 8; k++)
+        {
+            tmp = reg & 0x01;
+            reg >>= 1;
+            if (tmp)
+                reg ^= 0xedb88320;
+        }
+    }
+
+    return ~reg;
 }
 
 #pragma mark -
@@ -1172,9 +1254,6 @@ bool BCM5906MEthernet::initBlock()
     writeNICMem(BGE_HCC_TX_MAX_COAL_BDS_INT, 1);
 
     // Set up address of the statistics block.
-    // FIXME: statistics
-    //writeNICMem(BGE_HCC_STATS_ADDR_HI, BGE_ADDR_HI(sc->bge_ldata.bge_stats_paddr));
-    //writeNICMem(BGE_HCC_STATS_ADDR_LO, BGE_ADDR_LO(sc->bge_ldata.bge_stats_paddr));
     writeNICMem(BGE_HCC_STATUSBLK_BASEADDR, BGE_STATUS_BLOCK);
 
     // Set up address of the status block.

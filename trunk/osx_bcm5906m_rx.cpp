@@ -1,3 +1,28 @@
+// Copyright (c) 2011, Vyacheslav Matyushin.
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// * Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+// * Redistributions in binary form must reproduce the above copyright
+// notice, this list of conditions and the following disclaimer in the
+// documentation and/or other materials provided with the distribution.
+// * Neither the name of the <organization> nor the
+// names of its contributors may be used to endorse or promote products
+// derived from this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+//  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 #include "osx_bcm5906m.h"
 #include "osx_bcm5906m_reg.h"
 
@@ -5,7 +30,7 @@ bool BCM5906MEthernet::allocateRxMemory()
 {
     // Allocate Receive Producer ring.
     mReceiveProducerRingDesc = IOBufferMemoryDescriptor::withOptions(kIOMemoryPhysicallyContiguous,
-                                                                     BGE_RX_RING_SZ, mPCICacheSize);
+                                                                     BFE_RX_RING_SZ, mPCICacheSize);
     if (mReceiveProducerRingDesc == 0)
     {
         DLOG("No memory for receive rroducer ring.");
@@ -28,11 +53,11 @@ bool BCM5906MEthernet::allocateRxMemory()
     }
 
     mReceiveProducerRingAddr = (bcmReceiveBD *) mReceiveProducerRingDesc->getBytesNoCopy();
-    memset(mReceiveProducerRingAddr, 0, BGE_RX_RING_SZ);
+    memset(mReceiveProducerRingAddr, 0, BFE_RX_RING_SZ);
 
     // Allocate Receive Return ring.
     mReceiveReturnRingDesc = IOBufferMemoryDescriptor::withOptions(kIOMemoryPhysicallyContiguous,
-                                                                   BGE_RX_RING_SZ, mPCICacheSize);
+                                                                   BFE_RX_RING_SZ, mPCICacheSize);
     if (mReceiveReturnRingDesc == 0)
     {
         DLOG("No memory for receive return ring.");
@@ -55,15 +80,15 @@ bool BCM5906MEthernet::allocateRxMemory()
     }
 
     mReceiveReturnRingAddr = (bcmReceiveBD *) mReceiveReturnRingDesc->getBytesNoCopy();
-    memset(mReceiveReturnRingAddr, 0, BGE_RX_RING_SZ);
+    memset(mReceiveReturnRingAddr, 0, BFE_RX_RING_SZ);
 
-    mRxPacketArray = IONew(mbuf_t, BGE_RX_RING_CNT);
+    mRxPacketArray = IONew(mbuf_t, BFE_RX_RING_CNT);
     if (mRxPacketArray == 0)
     {
         DLOG("Can't get memory for RX packets.");
         return false;
     }
-    memset(mRxPacketArray, 0, BGE_RX_RING_CNT * sizeof(mbuf_t));
+    memset(mRxPacketArray, 0, BFE_RX_RING_CNT * sizeof(mbuf_t));
 
     return true;
 }
@@ -89,7 +114,7 @@ void BCM5906MEthernet::releaseRxMemory()
     if (mRxPacketArray)
     {
         freeRxRingPackets();
-        IODelete(mRxPacketArray, mbuf_t, BGE_RX_RING_CNT);
+        IODelete(mRxPacketArray, mbuf_t, BFE_RX_RING_CNT);
         mRxPacketArray = 0;
     }
 }
@@ -98,7 +123,7 @@ void BCM5906MEthernet::freeRxRingPackets()
 {
     if (mRxPacketArray)
     {
-        for (int i = 0; i < BGE_RX_RING_CNT; i++)
+        for (int i = 0; i < BFE_RX_RING_CNT; i++)
         {
             if (mRxPacketArray[i])
             {
@@ -113,27 +138,27 @@ bool BCM5906MEthernet::initRxRing()
 {
     freeRxRingPackets();
 
-    memset(mReceiveProducerRingAddr, 0, BGE_RX_RING_SZ);
-    memset(mReceiveReturnRingAddr, 0, BGE_RX_RING_SZ);
-    memset(mRxPacketArray, 0, BGE_RX_RING_CNT * sizeof(mbuf_t));
+    memset(mReceiveProducerRingAddr, 0, BFE_RX_RING_SZ);
+    memset(mReceiveReturnRingAddr, 0, BFE_RX_RING_SZ);
+    memset(mRxPacketArray, 0, BFE_RX_RING_CNT * sizeof(mbuf_t));
 
     mRxProducerProd = 0;
-    for (int i = 0; i < BGE_RX_RING_CNT; i++)
+    for (int i = 0; i < BFE_RX_RING_CNT; i++)
     {
         if (mRxPacketArray[i] == 0)
-            mRxPacketArray[i] = allocatePacket(BGE_MAX_FRAMELEN);
+            mRxPacketArray[i] = allocatePacket(BFE_MAX_FRAMELEN);
         if (mRxPacketArray[i] == 0)
         {
             DLOG("Failed to allocate RX packet.");
             return false;
         }
         updateRxDescriptor(i);
-        BGE_INC(mRxProducerProd, BGE_STD_RX_RING_CNT);
+        BFE_INC(mRxProducerProd, BFE_STD_RX_RING_CNT);
     }
 
     mRxProducerProd = 0;
     mRxReturnCons = 0;
-    writeRegisterMailbox(BGE_MBX_RX_STD_PROD_LO, BGE_STD_RX_RING_CNT - 1);
+    writeRegisterMailbox(BFE_MBX_RX_STD_PROD_LO, BFE_STD_RX_RING_CNT - 1);
 
     return true;
 }
@@ -147,12 +172,12 @@ void BCM5906MEthernet::updateRxDescriptor(UInt32 index)
 
     fragCount = mMemoryCursor->getPhysicalSegmentsWithCoalesce(mRxPacketArray[index], vectors, bcmMaxSegmentNum);
 
-    BGE_HOSTADDR(bdAddr, vectors[0].location);
+    BFE_HOSTADDR(bdAddr, vectors[0].location);
     OSWriteLittleInt32(&mReceiveProducerRingAddr[mRxProducerProd].bufHostAddr.addrHi, 0, bdAddr.addrHi);
     OSWriteLittleInt32(&mReceiveProducerRingAddr[mRxProducerProd].bufHostAddr.addrLo, 0, bdAddr.addrLo);
-    OSWriteLittleInt16(&mReceiveProducerRingAddr[mRxProducerProd].length, 0, BGE_MAX_FRAMELEN);
+    OSWriteLittleInt16(&mReceiveProducerRingAddr[mRxProducerProd].length, 0, BFE_MAX_FRAMELEN);
     OSWriteLittleInt16(&mReceiveProducerRingAddr[mRxProducerProd].index, 0, index);
-    OSWriteLittleInt16(&mReceiveProducerRingAddr[mRxProducerProd].flags, 0, BGE_RXBDFLAG_END);
+    OSWriteLittleInt16(&mReceiveProducerRingAddr[mRxProducerProd].flags, 0, BFE_RXBDFLAG_END);
     OSWriteLittleInt16(&mReceiveProducerRingAddr[mRxProducerProd].type, 0, 0);
     OSWriteLittleInt16(&mReceiveProducerRingAddr[mRxProducerProd].tcp_udp_cksum, 0, 0);
     OSWriteLittleInt16(&mReceiveProducerRingAddr[mRxProducerProd].ip_cksum, 0, 0);
@@ -181,25 +206,25 @@ void BCM5906MEthernet::serviceRxInterrupt()
     while (returnRingCons != returnRingProd)
     {
         receiveBD = &(mReceiveReturnRingAddr[returnRingCons]);
-        BGE_INC(returnRingCons, BGE_RX_RING_CNT);
+        BFE_INC(returnRingCons, BFE_RX_RING_CNT);
         packetsReceived++;
 
         rxIndex = receiveBD->index;
         inputFail = false;
 
         // Frame has error.
-        if (receiveBD->flags & BGE_RXBDFLAG_ERROR)
+        if (receiveBD->flags & BFE_RXBDFLAG_ERROR)
             inputFail = true;
 
         if (!inputFail)
         {
-            packet = replaceOrCopyPacket(&mRxPacketArray[rxIndex], BGE_MAX_FRAMELEN, &replaced);
+            packet = replaceOrCopyPacket(&mRxPacketArray[rxIndex], BFE_MAX_FRAMELEN, &replaced);
             if (packet == 0)
                 inputFail = true;
         }
 
         updateRxDescriptor(rxIndex);
-        BGE_INC(mRxProducerProd, BGE_STD_RX_RING_CNT);
+        BFE_INC(mRxProducerProd, BFE_STD_RX_RING_CNT);
 
         if (inputFail)
         {
@@ -208,13 +233,13 @@ void BCM5906MEthernet::serviceRxInterrupt()
         }
 
         // Frame has vlan tag.
-        if (receiveBD->flags & BGE_RXBDFLAG_VLAN_TAG)
+        if (receiveBD->flags & BFE_RXBDFLAG_VLAN_TAG)
             setVlanTag(packet, receiveBD->vlanTag);
 
-        if (receiveBD->flags & BGE_RXBDFLAG_IP_CSUM)
+        if (receiveBD->flags & BFE_RXBDFLAG_IP_CSUM)
             checksumValidMask |= kChecksumIP;
 
-        if (receiveBD->flags & BGE_RXBDFLAG_TCP_UDP_CSUM)
+        if (receiveBD->flags & BFE_RXBDFLAG_TCP_UDP_CSUM)
             checksumValidMask |= (kChecksumTCP | kChecksumUDP);
 
         setChecksumResult(packet, kChecksumFamilyTCPIP,
@@ -226,9 +251,9 @@ void BCM5906MEthernet::serviceRxInterrupt()
     }
 
     mRxReturnCons = returnRingCons;
-    writeRegisterMailbox(BGE_MBX_RX_CONS0_LO, mRxReturnCons);
+    writeRegisterMailbox(BFE_MBX_RX_CONS0_LO, mRxReturnCons);
     if (packetsReceived > 0)
-        writeRegisterMailbox(BGE_MBX_RX_STD_PROD_LO, mRxProducerProd);
+        writeRegisterMailbox(BFE_MBX_RX_STD_PROD_LO, mRxProducerProd);
 
     mNetworkInterface->flushInputQueue();
 }

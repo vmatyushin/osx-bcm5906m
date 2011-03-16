@@ -1,3 +1,28 @@
+// Copyright (c) 2011, Vyacheslav Matyushin.
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+// * Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+// * Redistributions in binary form must reproduce the above copyright
+// notice, this list of conditions and the following disclaimer in the
+// documentation and/or other materials provided with the distribution.
+// * Neither the name of the <organization> nor the
+// names of its contributors may be used to endorse or promote products
+// derived from this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+// WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+// DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+// DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+//  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+// ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 #include "osx_bcm5906m.h"
 #include "osx_bcm5906m_reg.h"
 
@@ -6,39 +31,39 @@ UInt32 BCM5906MEthernet::miiReadReg(UInt32 reg)
     UInt32 data, autopoll, i;
 
     // Temporarily disable autopolling.
-    autopoll = readNICMem(BGE_MI_MODE);
-    if (autopoll & BGE_MIMODE_AUTOPOLL)
+    autopoll = readNICMem(BFE_MI_MODE);
+    if (autopoll & BFE_MIMODE_AUTOPOLL)
     {
-        bcmClrBit(BGE_MI_MODE, BGE_MIMODE_AUTOPOLL);
+        bfeClrBit(BFE_MI_MODE, BFE_MIMODE_AUTOPOLL);
         IODelay(40);
     }
 
     // Setup MII Communication register.
-    writeNICMem(BGE_MI_COMM, BGE_MICMD_READ | BGE_MICOMM_BUSY | BGE_MIPHY(1) | BGE_MIREG(reg));
+    writeNICMem(BFE_MI_COMM, BFE_MICMD_READ | BFE_MICOMM_BUSY | BFE_MIPHY(1) | BFE_MIREG(reg));
 
-    for (i = 0; i < BGE_TIMEOUT; i++)
+    for (i = 0; i < BFE_TIMEOUT; i++)
     {
         IODelay(10);
-        data = readNICMem(BGE_MI_COMM);
-        if (!(data & BGE_MICOMM_BUSY))
+        data = readNICMem(BFE_MI_COMM);
+        if (!(data & BFE_MICOMM_BUSY))
             break;
     }
 
-    if (i == BGE_TIMEOUT)
+    if (i == BFE_TIMEOUT)
         data = 0;
     else
     {
         IODelay(5);
-        data = readNICMem(BGE_MI_COMM);
+        data = readNICMem(BFE_MI_COMM);
     }
 
-    if (autopoll & BGE_MIMODE_AUTOPOLL)
+    if (autopoll & BFE_MIMODE_AUTOPOLL)
     {
-        bcmSetBit(BGE_MI_MODE, BGE_MIMODE_AUTOPOLL);
+        bfeSetBit(BFE_MI_MODE, BFE_MIMODE_AUTOPOLL);
         IODelay(40);
     }
 
-    if (data & BGE_MICOMM_READFAIL)
+    if (data & BFE_MICOMM_READFAIL)
         return (0);
 
     return (data & 0xFFFF);
@@ -49,30 +74,30 @@ void BCM5906MEthernet::miiWriteReg(UInt32 reg, UInt32 data)
     UInt32 autopoll, i;
 
     // Temporarily disable autopolling.
-    autopoll = readNICMem(BGE_MI_MODE);
-    if (autopoll & BGE_MIMODE_AUTOPOLL)
+    autopoll = readNICMem(BFE_MI_MODE);
+    if (autopoll & BFE_MIMODE_AUTOPOLL)
     {
-        bcmClrBit(BGE_MI_MODE, BGE_MIMODE_AUTOPOLL);
+        bfeClrBit(BFE_MI_MODE, BFE_MIMODE_AUTOPOLL);
         IODelay(40);
     }
 
     // Setup MII Communication register.
-    writeNICMem(BGE_MI_COMM, BGE_MICMD_WRITE | BGE_MICOMM_BUSY | BGE_MIPHY(1) | BGE_MIREG(reg) | data);
+    writeNICMem(BFE_MI_COMM, BFE_MICMD_WRITE | BFE_MICOMM_BUSY | BFE_MIPHY(1) | BFE_MIREG(reg) | data);
 
-    for (i = 0; i < BGE_TIMEOUT; i++)
+    for (i = 0; i < BFE_TIMEOUT; i++)
     {
         IODelay(10);
-        if (!(readNICMem(BGE_MI_COMM) & BGE_MICOMM_BUSY))
+        if (!(readNICMem(BFE_MI_COMM) & BFE_MICOMM_BUSY))
         {
             IODelay(5);
-            readNICMem(BGE_MI_COMM);
+            readNICMem(BFE_MI_COMM);
             break;
         }
     }
 
-    if (autopoll & BGE_MIMODE_AUTOPOLL)
+    if (autopoll & BFE_MIMODE_AUTOPOLL)
     {
-        bcmSetBit(BGE_MI_MODE, BGE_MIMODE_AUTOPOLL);
+        bfeSetBit(BFE_MI_MODE, BFE_MIMODE_AUTOPOLL);
         IODelay(40);
     }
 }
@@ -82,17 +107,17 @@ bool BCM5906MEthernet::phyInit()
     UInt32 phyControl, i;
 
     // Reset PHY.
-    phyControl = BGE_PHY_RESET;
-    miiWriteReg(BGE_MII_CTL, phyControl);
+    phyControl = BFE_PHY_RESET;
+    miiWriteReg(BFE_MII_CTL, phyControl);
 
-    for (i = 0; i < BGE_TIMEOUT; i++)
+    for (i = 0; i < BFE_TIMEOUT; i++)
     {
-        phyControl = miiReadReg(BGE_MII_CTL);
-        if ((phyControl & BGE_PHY_RESET) == 0)
+        phyControl = miiReadReg(BFE_MII_CTL);
+        if ((phyControl & BFE_PHY_RESET) == 0)
             break;
         IODelay(10);
     }
-    if (i == BGE_TIMEOUT)
+    if (i == BFE_TIMEOUT)
     {
         DLOG("PHY reset failed.");
         return false;
@@ -100,25 +125,25 @@ bool BCM5906MEthernet::phyInit()
 
     // Init PHY.
     // Disable link events.
-    writeNICMem(BGE_MAC_EVT_ENB, 0);
+    writeNICMem(BFE_MAC_EVT_ENB, 0);
 
     // Clear link attentions.
-    bcmClrBit(BGE_MAC_STS, BGE_MACSTAT_LINK_CHANGED);
+    bfeClrBit(BFE_MAC_STS, BFE_MACSTAT_LINK_CHANGED);
 
     // Disable autopolling mode.
-    writeNICMem(BGE_MI_MODE, 0xC0020);
+    writeNICMem(BFE_MI_MODE, 0xC0020);
     IODelay(40);
 
     // Acknowledge outstanding interrupts (must read twice).
-    miiReadReg(BGE_MII_INTERRUPT);
-    miiReadReg(BGE_MII_INTERRUPT);
+    miiReadReg(BFE_MII_INTERRUPT);
+    miiReadReg(BFE_MII_INTERRUPT);
 
     // Enable autopolling mode.
-    bcmSetBit(BGE_MI_MODE, BGE_MIMODE_AUTOPOLL);
+    bfeSetBit(BFE_MI_MODE, BFE_MIMODE_AUTOPOLL);
 
     // Enable link attentions.
-    writeNICMem(BGE_MAC_EVT_ENB, BGE_EVTENB_LINK_CHANGED);
-    bcmSetBit(BGE_MODE_CTL, BGE_MODECTL_MAC_ATTN_INTR);
+    writeNICMem(BFE_MAC_EVT_ENB, BFE_EVTENB_LINK_CHANGED);
+    bfeSetBit(BFE_MODE_CTL, BFE_MODECTL_MAC_ATTN_INTR);
 
     return true;
 }
@@ -128,33 +153,33 @@ bool BCM5906MEthernet::phySetMedium(bcmMediumType mediumType)
     // Reset PHY.
     phyInit();
 
-    if (mediumType == BGE_MEDIUM_AUTO)
+    if (mediumType == BFE_MEDIUM_AUTO)
         return true;
 
-    UInt32 miiControl = miiReadReg(BGE_MII_CTL);
-    miiControl &= BGE_MII_CTL_AUTONEG_DISABLE;
+    UInt32 miiControl = miiReadReg(BFE_MII_CTL);
+    miiControl &= BFE_MII_CTL_AUTONEG_DISABLE;
 
     switch (mediumType)
     {
-        case BGE_MEDIUM_10HD:
-            miiControl &= BGE_MII_CTL_FORCED_10;
-            miiControl &= BGE_MII_CTL_DUPLEX_HALF;
+        case BFE_MEDIUM_10HD:
+            miiControl &= BFE_MII_CTL_FORCED_10;
+            miiControl &= BFE_MII_CTL_DUPLEX_HALF;
             break;
 
-        case BGE_MEDIUM_10FD:
-            miiControl &= BGE_MII_CTL_FORCED_10;
-            miiControl |= BGE_MII_CTL_DUPLEX_FULL;
+        case BFE_MEDIUM_10FD:
+            miiControl &= BFE_MII_CTL_FORCED_10;
+            miiControl |= BFE_MII_CTL_DUPLEX_FULL;
             break;
 
-        case BGE_MEDIUM_100HD:
-        case BGE_MEDIUM_100T4:
-            miiControl |= BGE_MII_CTL_FORCED_100;
-            miiControl &= BGE_MII_CTL_DUPLEX_HALF;
+        case BFE_MEDIUM_100HD:
+        case BFE_MEDIUM_100T4:
+            miiControl |= BFE_MII_CTL_FORCED_100;
+            miiControl &= BFE_MII_CTL_DUPLEX_HALF;
             break;
 
-        case BGE_MEDIUM_100FD:
-            miiControl |= BGE_MII_CTL_FORCED_100;
-            miiControl |= BGE_MII_CTL_DUPLEX_FULL;
+        case BFE_MEDIUM_100FD:
+            miiControl |= BFE_MII_CTL_FORCED_100;
+            miiControl |= BFE_MII_CTL_DUPLEX_FULL;
             break;
 
         default:
@@ -162,7 +187,7 @@ bool BCM5906MEthernet::phySetMedium(bcmMediumType mediumType)
             break;
     }
 
-    miiWriteReg(BGE_MII_CTL, miiControl);
+    miiWriteReg(BFE_MII_CTL, miiControl);
     return true;
 }
 
@@ -170,31 +195,31 @@ bcmMediumType BCM5906MEthernet::phyGetActiveMedium()
 {
     bcmMediumType medium;
 
-    UInt32 anar = miiReadReg(BGE_MII_ANAR);
-    UInt32 anlpar = miiReadReg(BGE_MII_ANLPAR);
+    UInt32 anar = miiReadReg(BFE_MII_ANAR);
+    UInt32 anlpar = miiReadReg(BFE_MII_ANLPAR);
     UInt32 common = anar & anlpar;
 
-    if (common & BGE_MII_ANAR_T4)
-        medium = BGE_MEDIUM_100T4;
-    else if (common & BGE_MII_ANAR_TX_FD)
-        medium = BGE_MEDIUM_100FD;
-    else if (common & BGE_MII_ANAR_TX_HD)
-        medium = BGE_MEDIUM_100HD;
-    else if (common & BGE_MII_ANAR_10_FD)
-        medium = BGE_MEDIUM_10FD;
+    if (common & BFE_MII_ANAR_T4)
+        medium = BFE_MEDIUM_100T4;
+    else if (common & BFE_MII_ANAR_TX_FD)
+        medium = BFE_MEDIUM_100FD;
+    else if (common & BFE_MII_ANAR_TX_HD)
+        medium = BFE_MEDIUM_100HD;
+    else if (common & BFE_MII_ANAR_10_FD)
+        medium = BFE_MEDIUM_10FD;
     else
-        medium = BGE_MEDIUM_10HD;
+        medium = BFE_MEDIUM_10HD;
 
     return medium;
 }
 
 void BCM5906MEthernet::phyGetLinkStatus(bool firstPoll)
 {
-    UInt32 miiStatus = miiReadReg(BGE_MII_STATUS);
+    UInt32 miiStatus = miiReadReg(BFE_MII_STATUS);
     UInt32 statusChange, i;
 
     // Detect a change in the two link related bits.
-    statusChange = (mPHYPrevStatus ^ miiStatus) & (BGE_MII_STS_LINK | BGE_MII_STS_AUTONEG_COMP);
+    statusChange = (mPHYPrevStatus ^ miiStatus) & (BFE_MII_STS_LINK | BFE_MII_STS_AUTONEG_COMP);
 
     if (statusChange || firstPoll)
     {
@@ -206,23 +231,23 @@ void BCM5906MEthernet::phyGetLinkStatus(bool firstPoll)
 
             while (i > 0)
             {
-                miiStatus = miiReadReg(BGE_MII_STATUS);
+                miiStatus = miiReadReg(BFE_MII_STATUS);
                 if (!miiStatus)
                     break;
 
-                if (miiStatus & BGE_MII_STS_AUTONEG_COMP)
+                if (miiStatus & BFE_MII_STS_AUTONEG_COMP)
                     break;
 
                 IOSleep(20);
                 i -= 20;
             }
 
-            miiStatus = miiReadReg(BGE_MII_STATUS);
-            miiStatus = miiReadReg(BGE_MII_STATUS);
+            miiStatus = miiReadReg(BFE_MII_STATUS);
+            miiStatus = miiReadReg(BFE_MII_STATUS);
         }
 
         // Determine link status.
-        if (miiStatus & BGE_MII_STS_LINK)
+        if (miiStatus & BFE_MII_STS_LINK)
         {
             // Link is up.
             IONetworkMedium *activeMedium = getMediumWithType(phyGetActiveMedium());

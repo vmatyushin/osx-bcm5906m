@@ -11,6 +11,10 @@
 		32D94FC80562CBF700B6AF17 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C167DFE841241C02AAC07 /* InfoPlist.strings */; };
 		32D94FCA0562CBF700B6AF17 /* osx_bcm5906m.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1A224C3FFF42367911CA2CB7 /* osx_bcm5906m.cpp */; settings = {ATTRIBUTES = (); }; };
 		CE69238B12FE353E00E53F29 /* osx_bcm5906m_reg.h in Headers */ = {isa = PBXBuildFile; fileRef = CE69238A12FE353E00E53F29 /* osx_bcm5906m_reg.h */; };
+		CEC704C013314F8B0007D427 /* osx_bcm5906m_chip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEC704BE13314F8B0007D427 /* osx_bcm5906m_chip.cpp */; };
+		CEC704DC1331505B0007D427 /* osx_bcm5906m_rx.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEC704DA1331505B0007D427 /* osx_bcm5906m_rx.cpp */; };
+		CEC704E0133150620007D427 /* osx_bcm5906m_tx.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEC704DE133150620007D427 /* osx_bcm5906m_tx.cpp */; };
+		CEC704E51331513A0007D427 /* osx_bcm5906m_phy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEC704E41331513A0007D427 /* osx_bcm5906m_phy.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -21,6 +25,10 @@
 		32D94FD00562CBF700B6AF17 /* BCM5906MEthernet.kext */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BCM5906MEthernet.kext; sourceTree = BUILT_PRODUCTS_DIR; };
 		8DA8362C06AD9B9200E5AC22 /* Kernel.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Kernel.framework; path = /System/Library/Frameworks/Kernel.framework; sourceTree = "<absolute>"; };
 		CE69238A12FE353E00E53F29 /* osx_bcm5906m_reg.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = osx_bcm5906m_reg.h; sourceTree = "<group>"; };
+		CEC704BE13314F8B0007D427 /* osx_bcm5906m_chip.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = osx_bcm5906m_chip.cpp; sourceTree = "<group>"; };
+		CEC704DA1331505B0007D427 /* osx_bcm5906m_rx.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = osx_bcm5906m_rx.cpp; sourceTree = "<group>"; };
+		CEC704DE133150620007D427 /* osx_bcm5906m_tx.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = osx_bcm5906m_tx.cpp; sourceTree = "<group>"; };
+		CEC704E41331513A0007D427 /* osx_bcm5906m_phy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = osx_bcm5906m_phy.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -66,8 +74,12 @@
 		247142CAFF3F8F9811CA285C /* Source */ = {
 			isa = PBXGroup;
 			children = (
+				CEC704BE13314F8B0007D427 /* osx_bcm5906m_chip.cpp */,
 				1A224C3EFF42367911CA2CB7 /* osx_bcm5906m.h */,
 				1A224C3FFF42367911CA2CB7 /* osx_bcm5906m.cpp */,
+				CEC704DA1331505B0007D427 /* osx_bcm5906m_rx.cpp */,
+				CEC704DE133150620007D427 /* osx_bcm5906m_tx.cpp */,
+				CEC704E41331513A0007D427 /* osx_bcm5906m_phy.cpp */,
 			);
 			name = Source;
 			sourceTree = "<group>";
@@ -151,6 +163,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				32D94FCA0562CBF700B6AF17 /* osx_bcm5906m.cpp in Sources */,
+				CEC704C013314F8B0007D427 /* osx_bcm5906m_chip.cpp in Sources */,
+				CEC704DC1331505B0007D427 /* osx_bcm5906m_rx.cpp in Sources */,
+				CEC704E0133150620007D427 /* osx_bcm5906m_tx.cpp in Sources */,
+				CEC704E51331513A0007D427 /* osx_bcm5906m_phy.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

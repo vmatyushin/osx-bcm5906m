@@ -11,6 +11,8 @@
 		32D94FC80562CBF700B6AF17 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C167DFE841241C02AAC07 /* InfoPlist.strings */; };
 		32D94FCA0562CBF700B6AF17 /* osx_bcm5906m.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1A224C3FFF42367911CA2CB7 /* osx_bcm5906m.cpp */; settings = {ATTRIBUTES = (); }; };
 		CE69238B12FE353E00E53F29 /* osx_bcm5906m_reg.h in Headers */ = {isa = PBXBuildFile; fileRef = CE69238A12FE353E00E53F29 /* osx_bcm5906m_reg.h */; };
+		CEB4B2DD1331B45500F0A104 /* Readme.txt in Resources */ = {isa = PBXBuildFile; fileRef = CEB4B2DC1331B45500F0A104 /* Readme.txt */; };
+		CEB4B2E11331B46000F0A104 /* Licence.txt in Resources */ = {isa = PBXBuildFile; fileRef = CEB4B2E01331B46000F0A104 /* Licence.txt */; };
 		CEC704C013314F8B0007D427 /* osx_bcm5906m_chip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEC704BE13314F8B0007D427 /* osx_bcm5906m_chip.cpp */; };
 		CEC704DC1331505B0007D427 /* osx_bcm5906m_rx.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEC704DA1331505B0007D427 /* osx_bcm5906m_rx.cpp */; };
 		CEC704E0133150620007D427 /* osx_bcm5906m_tx.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CEC704DE133150620007D427 /* osx_bcm5906m_tx.cpp */; };
@@ -25,6 +27,8 @@
 		32D94FD00562CBF700B6AF17 /* BCM5906MEthernet.kext */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BCM5906MEthernet.kext; sourceTree = BUILT_PRODUCTS_DIR; };
 		8DA8362C06AD9B9200E5AC22 /* Kernel.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Kernel.framework; path = /System/Library/Frameworks/Kernel.framework; sourceTree = "<absolute>"; };
 		CE69238A12FE353E00E53F29 /* osx_bcm5906m_reg.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = osx_bcm5906m_reg.h; sourceTree = "<group>"; };
+		CEB4B2DC1331B45500F0A104 /* Readme.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Readme.txt; sourceTree = "<group>"; };
+		CEB4B2E01331B46000F0A104 /* Licence.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Licence.txt; sourceTree = "<group>"; };
 		CEC704BE13314F8B0007D427 /* osx_bcm5906m_chip.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = osx_bcm5906m_chip.cpp; sourceTree = "<group>"; };
 		CEC704DA1331505B0007D427 /* osx_bcm5906m_rx.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = osx_bcm5906m_rx.cpp; sourceTree = "<group>"; };
 		CEC704DE133150620007D427 /* osx_bcm5906m_tx.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = osx_bcm5906m_tx.cpp; sourceTree = "<group>"; };
@@ -45,11 +49,12 @@
 		089C166AFE841209C02AAC07 /* osx_bcm5906m */ = {
 			isa = PBXGroup;
 			children = (
+				CEB4B2DC1331B45500F0A104 /* Readme.txt */,
 				247142CAFF3F8F9811CA285C /* Source */,
 				8DA8362C06AD9B9200E5AC22 /* Kernel.framework */,
 				089C167CFE841241C02AAC07 /* Resources */,
 				19C28FB6FE9D52B211CA2CBB /* Products */,
-				CE69238A12FE353E00E53F29 /* osx_bcm5906m_reg.h */,
+				CEB4B2E01331B46000F0A104 /* Licence.txt */,
 			);
 			name = osx_bcm5906m;
 			sourceTree = "<group>";
@@ -74,6 +79,7 @@
 		247142CAFF3F8F9811CA285C /* Source */ = {
 			isa = PBXGroup;
 			children = (
+				CE69238A12FE353E00E53F29 /* osx_bcm5906m_reg.h */,
 				CEC704BE13314F8B0007D427 /* osx_bcm5906m_chip.cpp */,
 				1A224C3EFF42367911CA2CB7 /* osx_bcm5906m.h */,
 				1A224C3FFF42367911CA2CB7 /* osx_bcm5906m.cpp */,
@@ -142,6 +148,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				32D94FC80562CBF700B6AF17 /* InfoPlist.strings in Resources */,
+				CEB4B2DD1331B45500F0A104 /* Readme.txt in Resources */,
+				CEB4B2E11331B46000F0A104 /* Licence.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
